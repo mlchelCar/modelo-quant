@@ -43,7 +43,7 @@ def load_raw_data(date, path="./data", max_files=None):
 
 
 def make_candles(dataset, freq="25min", symbol=None):
-    print(f"Making candles with freq={freq}...")
+    print(f"\nMaking candles with freq={freq}...")
     df = dataset[["ts_event", "price", "size", "symbol"]].copy()
     df["datetime"] = pd.to_datetime(df["ts_event"])
 
@@ -52,6 +52,8 @@ def make_candles(dataset, freq="25min", symbol=None):
 
     print(f"  Symbol: {symbol}")
     df = df[df["symbol"] == symbol]
+
+
 
     candles_df = (
         df.groupby(pd.Grouper(key="datetime", freq=freq))
