@@ -46,6 +46,17 @@ def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
 
     return {"price_bins": price_bins,"volumes": vol, "A": A, "B": B, "symbol": symbol,}
 
+def calculate_poc(vp, return_volume=False):
+    """Return the price of the POC (and optionally the volume)."""
+    if vp is None or len(vp["volumes"]) == 0:
+        raise ValueError("Invalid or empty volume profile data")
+
+    idx_max = np.argmax(vp["volumes"])
+    poc_price = vp["price_bins"][idx_max]
+    poc_volume = vp["volumes"][idx_max]
+
+    return (poc_price, poc_volume) if return_volume else poc_price
+
 def calculate_moving_averages(candles, periods=(25, 100), ema=True):
     """Return a dict of moving averages (EMA or SMA) keyed by period."""
     df = pd.DataFrame({
@@ -77,7 +88,7 @@ def detect_ma_crossovers(ma_short, ma_long):
 
     return cross_up, cross_down
 
-def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None):
+def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
     opens, highs, lows, closes, volumes = zip(*[(c.open, c.high, c.low, c.close, c.volume) for c in candles])
     colors = ['green' if closes[i] >= opens[i] else 'red' for i in range(len(candles))]
@@ -114,6 +125,27 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
             name="Bearish Crossover",
             marker=dict(symbol="triangle-down", color="red", size=12, line=dict(width=1, color="black")),
         ), row=1, col=1)
+        
+        # --- POC lines ---
+    if volume_profiles:
+        for vp in volume_profiles:
+            A = pd.Timestamp(vp["A"]).tz_localize(None)
+            B = pd.Timestamp(vp["B"]).tz_localize(None)
+            poc = vp["poc"]
+
+            fig.add_shape(
+                type="line",
+                x0=A, x1=B,
+                y0=poc, y1=poc,
+                line=dict(color="orange", width=2, dash="dot"),
+                row=1, col=1,
+            )
+            # Optional annotation:
+            fig.add_annotation(
+                x=B, y=poc, text=f"POC {poc:.5f}",
+                showarrow=False, font=dict(size=10, color="orange"),
+                xanchor="left", yanchor="bottom", row=1, col=1
+            )
 
     fig.update_layout(title=t, xaxis_rangeslider_visible=False, height=800, hovermode='x unified', xaxis=dict(type='date'))
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
@@ -128,12 +160,10 @@ if __name__ == "__main__":
     dataset = load_raw_data(20251001, max_files=None)
 
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
-    A = "2025-10-19 09:00:00"
-    B = "2025-10-22 12:00:00"
-
-    vp = calculate_volume_profile_from_trades(dataset, A, B, symbol="6EZ5", bins=80)
-
+    short_ma = 20
+    long_ma = 50
     freq="25min"
+
     for s in symbols:
         candles = make_candles(dataset, freq, symbol=s)
         
@@ -141,12 +171,29 @@ if __name__ == "__main__":
             print(f"No candles for {s}")
             continue
 
-        short_ma = 20
-        long_ma = 50
+
         ma_dict = calculate_moving_averages(candles, periods=(short_ma, long_ma))
         cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
 
-        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down)
+         # === Build Volume Profiles between crossovers ===
+        volume_profiles = []
+        all_crosses = sorted([(i, "up") for i in cross_up] + [(i, "down") for i in cross_down], key=lambda x: x[0])
+
+        for i in range(len(all_crosses) - 1):
+            idx_a, type_a = all_crosses[i]
+            idx_b, type_b = all_crosses[i + 1]
+
+            A = pd.Timestamp(candles[idx_a].time).tz_localize(None)
+            B = pd.Timestamp(candles[idx_b].time).tz_localize(None)
+
+            vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=s, bins=160)
+            if vp is None:
+                continue
+
+            poc = calculate_poc(vp)
+            volume_profiles.append({"A": A, "B": B, "poc": poc})
+            
+        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=volume_profiles)
 
 
 
@@ -156,5 +203,5 @@ Todo
 Resolver situacao dos simbolos OK
 calcular Moving Average Crossings OK
 Calcular Volume Profile OK
-Plotar Volume Profile
+Plotar POC OK
 '''
