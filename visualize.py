@@ -88,6 +88,19 @@ def detect_ma_crossovers(ma_short, ma_long):
 
     return cross_up, cross_down
 
+def decide_entry_direction(b_candle_close, poc, current_candle):
+    if not (current_candle.low <= poc <= current_candle.high):
+        return None
+
+    # Decide direction based on B candle close
+    if b_candle_close > poc:
+        return "long"
+    elif b_candle_close < poc:
+        return "short"
+    
+    return None
+
+                    
 def detect_entries(candles, volume_profiles):
     """
     Detects when candles touch a POC level from prior volume profiles.
@@ -110,20 +123,25 @@ def detect_entries(candles, volume_profiles):
 
     for vp in volume_profiles:
         poc = vp["poc"]
-        B = pd.Timestamp(vp["B"]).tz_localize(None)
+        B_time = pd.Timestamp(vp["B"]).tz_localize(None)
 
-        # find first candle *after B* that touches POC
-        for i, c in enumerate(candles):
-            if times[i] <= B:
-                continue
-            if c.low <= poc <= c.high:
-                entries.append({
-                    "poc": poc,
-                    "B": B,
-                    "entry_time": times[i],
-                    "entry_price": c.close,
-                    "candle_index": i
-                })
+        # Find the candle that matches B
+        b_candle = next((c for c in candles if pd.Timestamp(c.time).tz_localize(None) == B_time), None)
+        if b_candle is None:
+            print(f"⚠️ Could not find B candle at {B_time}")
+            continue
+
+        b_close = b_candle.close
+
+        for i in range(len(candles)):
+            c = candles[i]
+            if pd.Timestamp(c.time).tz_localize(None) <= B_time:
+                continue  # only check after B
+
+            entry_type = decide_entry_direction(b_close, poc, c)
+
+            if entry_type:
+                entries.append({"poc": poc, "B": B, "entry_time": times[i], "entry_price": c.close, "candle_index": i, "entry_type": entry_type})
                 break  # stop after first touch
 
     return entries
@@ -139,33 +157,24 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
     
     if moving_averages:
         for period, ma_values in moving_averages.items():
-            fig.add_trace(go.Scatter(
-                x=times,
-                y=ma_values,
-                mode='lines',
-                line=dict(width=1.5),
-                name=f"MA{period}"
-            ), row=1, col=1)
+            fig.add_trace(go.Scatter(x=times, y=ma_values, mode='lines', line=dict(width=1.5), name=f"MA{period}"), row=1, col=1)
 
  # === Crossovers ===
     if cross_up or cross_down:
         indices = (cross_up or []) + (cross_down or [])
-        fig.add_trace(go.Scatter(
-            x=[times[i] for i in indices],
-            y=[closes[i] for i in indices],
-            mode="markers",
-            name="Crossovers",
-            marker=dict(symbol="circle", color="yellow", size=10, line=dict(width=1, color="black")),
-        ), row=1, col=1)
+        fig.add_trace(go.Scatter(x=[times[i] for i in indices], y=[closes[i] for i in indices], mode="markers", name="Crossovers", marker=dict(symbol="circle", color="yellow", size=10, line=dict(width=1, color="black")), ), row=1, col=1)
 
     if entries:
-        fig.add_trace(go.Scatter(
-            x=[e["entry_time"] for e in entries],
-            y=[e["poc"] for e in entries],
-            mode="markers",
-            name="POC Touch",
-            marker=dict(symbol="x", color="cyan", size=10, line=dict(width=1, color="black")),
-        ), row=1, col=1)
+        long_entries = [e for e in entries if e["entry_type"] == "long"]
+        short_entries = [e for e in entries if e["entry_type"] == "short"]
+
+        # Longs (green upward triangles)
+        if long_entries:
+            fig.add_trace(go.Scatter(x=[e["entry_time"] for e in long_entries], y=[e["poc"] for e in long_entries], mode="markers", name="Long Entry", marker=dict(symbol="triangle-up", color="lime", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+
+        # Shorts (red downward triangles)
+        if short_entries:
+            fig.add_trace(go.Scatter( x=[e["entry_time"] for e in short_entries], y=[e["poc"] for e in short_entries], mode="markers", name="Short Entry", marker=dict(symbol="triangle-down", color="red", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
 
         # --- POC lines ---
     if volume_profiles:
@@ -174,19 +183,9 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
             B = pd.Timestamp(vp["B"]).tz_localize(None)
             poc = vp["poc"]
 
-            fig.add_shape(
-                type="line",
-                x0=A, x1=B,
-                y0=poc, y1=poc,
-                line=dict(color="orange", width=2, dash="dot"),
-                row=1, col=1,
-            )
+            fig.add_shape(type="line", x0=A, x1=B, y0=poc, y1=poc, line=dict(color="orange", width=2, dash="dot"), row=1, col=1,)
             # Optional annotation:
-            fig.add_annotation(
-                x=B, y=poc, text=f"POC {poc:.5f}",
-                showarrow=False, font=dict(size=10, color="orange"),
-                xanchor="left", yanchor="bottom", row=1, col=1
-            )
+            fig.add_annotation(x=B, y=poc, text=f"POC {poc:.5f}", showarrow=False, font=dict(size=10, color="orange"), xanchor="left", yanchor="bottom", row=1, col=1)
 
     fig.update_layout(title=t, xaxis_rangeslider_visible=False, height=800, hovermode='x unified', xaxis=dict(type='date'))
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
@@ -247,5 +246,7 @@ Resolver situacao dos simbolos OK
 calcular Moving Average Crossings OK
 Calcular Volume Profile OK
 Plotar POC OK
-Add entry signals
+Add entry signals OK
+Fix decide_entry_direction OK
+Fix price step (futures should be 0.0005)
 '''
