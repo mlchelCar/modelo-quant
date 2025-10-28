@@ -3,10 +3,10 @@ from plotly.subplots import make_subplots
 import pandas as pd
 from main import load_raw_data, make_candles
 import numpy as np
-
+import sys
 
 def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
-    print(f"Calculating volume profile from {len(trades_df)} trades...")
+    print(f"\nCalculating volume profile from {len(trades_df)} trades...")
     print(f"  A: {A}, B: {B}, symbol: {symbol}, bins: {bins}")
 
     df = trades_df.copy()
@@ -88,7 +88,47 @@ def detect_ma_crossovers(ma_short, ma_long):
 
     return cross_up, cross_down
 
-def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None):
+def detect_entries(candles, volume_profiles):
+    """
+    Detects when candles touch a POC level from prior volume profiles.
+
+    Parameters
+    ----------
+    candles : list
+        List of Candle objects with attributes: time, open, high, low, close.
+    volume_profiles : list of dict
+        Each dict must contain: {"A": datetime, "B": datetime, "poc_price": float}
+
+    Returns
+    -------
+    entries : list of dict
+        [{"poc": float, "B": Timestamp, "entry_time": Timestamp, "entry_price": float, "candle_index": int}, ...]
+    """
+
+    entries = []
+    times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
+
+    for vp in volume_profiles:
+        poc = vp["poc"]
+        B = pd.Timestamp(vp["B"]).tz_localize(None)
+
+        # find first candle *after B* that touches POC
+        for i, c in enumerate(candles):
+            if times[i] <= B:
+                continue
+            if c.low <= poc <= c.high:
+                entries.append({
+                    "poc": poc,
+                    "B": B,
+                    "entry_time": times[i],
+                    "entry_price": c.close,
+                    "candle_index": i
+                })
+                break  # stop after first touch
+
+    return entries
+
+def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
     opens, highs, lows, closes, volumes = zip(*[(c.open, c.high, c.low, c.close, c.volume) for c in candles])
     colors = ['green' if closes[i] >= opens[i] else 'red' for i in range(len(candles))]
@@ -108,24 +148,25 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
             ), row=1, col=1)
 
  # === Crossovers ===
-    if cross_up:
+    if cross_up or cross_down:
+        indices = (cross_up or []) + (cross_down or [])
         fig.add_trace(go.Scatter(
-            x=[times[i] for i in cross_up],
-            y=[closes[i] for i in cross_up],
+            x=[times[i] for i in indices],
+            y=[closes[i] for i in indices],
             mode="markers",
-            name="Bullish Crossover",
-            marker=dict(symbol="triangle-up", color="lime", size=12, line=dict(width=1, color="black")),
+            name="Crossovers",
+            marker=dict(symbol="circle", color="yellow", size=10, line=dict(width=1, color="black")),
         ), row=1, col=1)
 
-    if cross_down:
+    if entries:
         fig.add_trace(go.Scatter(
-            x=[times[i] for i in cross_down],
-            y=[closes[i] for i in cross_down],
+            x=[e["entry_time"] for e in entries],
+            y=[e["poc"] for e in entries],
             mode="markers",
-            name="Bearish Crossover",
-            marker=dict(symbol="triangle-down", color="red", size=12, line=dict(width=1, color="black")),
+            name="POC Touch",
+            marker=dict(symbol="x", color="cyan", size=10, line=dict(width=1, color="black")),
         ), row=1, col=1)
-        
+
         # --- POC lines ---
     if volume_profiles:
         for vp in volume_profiles:
@@ -156,8 +197,8 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
 if __name__ == "__main__":
     # Load last 60 days of data (faster rendering, still plenty of data)
     # Change max_files to load more/less data
-
-    dataset = load_raw_data(20251001, max_files=None)
+    date = int(sys.argv[1])
+    dataset = load_raw_data(date, max_files=None)
 
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
     short_ma = 20
@@ -192,8 +233,10 @@ if __name__ == "__main__":
 
             poc = calculate_poc(vp)
             volume_profiles.append({"A": A, "B": B, "poc": poc})
-            
-        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=volume_profiles)
+
+        entries = detect_entries(candles, volume_profiles)
+
+        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=volume_profiles, entries=entries)
 
 
 
@@ -204,4 +247,5 @@ Resolver situacao dos simbolos OK
 calcular Moving Average Crossings OK
 Calcular Volume Profile OK
 Plotar POC OK
+Add entry signals
 '''
