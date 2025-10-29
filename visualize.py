@@ -52,7 +52,7 @@ def calculate_poc(vp, return_volume=False):
         raise ValueError("Invalid or empty volume profile data")
 
     idx_max = np.argmax(vp["volumes"])
-    poc_price = vp["price_bins"][idx_max]
+    poc_price = round(vp["price_bins"][idx_max],5)
     poc_volume = vp["volumes"][idx_max]
 
     return (poc_price, poc_volume) if return_volume else poc_price
@@ -141,17 +141,65 @@ def detect_entries(candles, volume_profiles):
             entry_type = decide_entry_direction(b_close, poc, c)
 
             if entry_type:
-                entries.append({"poc": poc, "B": B, "entry_time": times[i], "entry_price": c.close, "candle_index": i, "entry_type": entry_type})
+                entries.append({ "B": B, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type})
                 break  # stop after first touch
 
     return entries
 
 def result_from_entries(entries, candles, stop_losses, rrratios):
     results = []
-    for entry in entries:
+
+    for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
-        
+        direction = entry["entry_type"]
+
+        # Normalize timezone
+        if entry_time.tzinfo is not None:
+            entry_time = entry_time.tz_convert(None)
+
+        # Define levels
+        if direction == "long":
+            stop_level = entry_price - sl_dist
+            target_level = entry_price + rr * sl_dist
+        else:
+            stop_level = entry_price + sl_dist
+            target_level = entry_price - rr * sl_dist
+
+        result = 0
+        print(
+            f"\nEntry at {entry_time}, price={entry_price:.5f}, dir={direction}, "
+            f"stop={stop_level:.5f}, target={target_level:.5f}"
+        )
+        for candle in candles:
+            candle_time = candle.time
+            if candle_time.tzinfo is not None:
+                candle_time = candle_time.tz_convert(None)
+
+            if candle_time <= entry_time:
+                continue
+
+            high, low = candle.high, candle.low
+
+            if direction == "long":
+                if low <= stop_level:
+                    result = -1
+                    break
+                elif high >= target_level:
+                    result = rr
+                    break
+            else:
+                if high >= stop_level:
+                    result = -1
+                    break
+                elif low <= target_level:
+                    result = rr
+                    break
+
+        results.append(result)
+
+    return results
+
 
 def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
@@ -177,11 +225,11 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
 
         # Longs (green upward triangles)
         if long_entries:
-            fig.add_trace(go.Scatter(x=[e["entry_time"] for e in long_entries], y=[e["poc"] for e in long_entries], mode="markers", name="Long Entry", marker=dict(symbol="triangle-up", color="lime", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+            fig.add_trace(go.Scatter(x=[e["entry_time"] for e in long_entries], y=[e["entry_price"] for e in long_entries], mode="markers", name="Long Entry", marker=dict(symbol="triangle-up", color="lime", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
 
         # Shorts (red downward triangles)
         if short_entries:
-            fig.add_trace(go.Scatter( x=[e["entry_time"] for e in short_entries], y=[e["poc"] for e in short_entries], mode="markers", name="Short Entry", marker=dict(symbol="triangle-down", color="red", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+            fig.add_trace(go.Scatter( x=[e["entry_time"] for e in short_entries], y=[e["entry_price"] for e in short_entries], mode="markers", name="Short Entry", marker=dict(symbol="triangle-down", color="red", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
 
         # --- POC lines ---
     if volume_profiles:
@@ -242,9 +290,14 @@ if __name__ == "__main__":
 
         entries = detect_entries(candles, volume_profiles)
 
-        stop_losses = [20 for i range(len(entries))]
-        rrratios = [2 for i range(len(entries))]
+        stop_losses = [0.0002 for i in range(len(entries))]
+        rrratios = [3 for i in range(len(entries))]
         results = result_from_entries(entries, candles, stop_losses, rrratios)
+
+        print(f"Results: {results}")
+        print(f"Win rate: {sum(r > 0 for r in results) / len(results)}")
+        print(f"Number of trades: {len(results)}")
+        print(f"Total: {sum(results)}")
 
         visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=volume_profiles, entries=entries)
 
@@ -260,4 +313,6 @@ Plotar POC OK
 Add entry signals OK
 Fix decide_entry_direction OK
 Fix price step (futures should be 0.0005) OK
+Calculare result from each entrie OK
+Fix simbols with duplicate entries OK
 '''
