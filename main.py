@@ -39,7 +39,7 @@ def load_raw_data(date, path="./data", max_files=None):
     print(f"Combining {len(dfs)} files...")
     result = pd.concat(dfs, ignore_index=True)
     print(f"Total: {len(result):,} rows")
-    return result
+    return count, result
 
 
 def make_candles(dataset, freq="25min", symbol=None):
@@ -66,9 +66,3 @@ def make_candles(dataset, freq="25min", symbol=None):
     print(f"  Created {len(candles_df)} candles")
     return [Candle(row['datetime'], row['Open'], row['High'], row['Low'], row['Close'], row['Volume'])
             for _, row in candles_df.iterrows()]
-
-
-if __name__ == "__main__":
-    dataset = load_raw_data(20250723)
-    candles = make_candles(dataset, freq="25min")
-    print(f"Created {len(candles)} candles")

@@ -247,14 +247,40 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     fig.show()
 
+def calculate_sharpe(results, days):
+    annual_trading_days = 252 #for stocks/forex
+    risk_free_rate = 0
+
+    r = np.array(results, dtype=float)
+    if len(r) < 2:
+        raise ValueError("Need at least two return values to compute Sharpe ratio")
+
+    # Compute mean and std of returns
+    mean_r = np.mean(r)
+    std_r = np.std(r, ddof=1)
+
+    # Avoid division by zero
+    if std_r == 0:
+        raise ValueError("Standard deviation of returns is zero")
+
+    # Sharpe ratio for the given period
+    sharpe = (mean_r - risk_free_rate) / std_r
+
+
+    # Annualize Sharpe
+    annualized_sharpe = sharpe * np.sqrt(annual_trading_days / days)
+
+    return sharpe, annualized_sharpe
+    
 
 if __name__ == "__main__":
     # Load last 60 days of data (faster rendering, still plenty of data)
     # Change max_files to load more/less data
     date = int(sys.argv[1])
-    dataset = load_raw_data(date, max_files=None)
+    days, dataset = load_raw_data(date, max_files=None)
 
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
+    symbols = ["6EZ5"]
     short_ma = 20
     long_ma = 50
     freq="25min"
@@ -291,15 +317,17 @@ if __name__ == "__main__":
         entries = detect_entries(candles, volume_profiles)
 
         stop_losses = [0.0002 for i in range(len(entries))]
-        rrratios = [3 for i in range(len(entries))]
+        rrratios = [4 for i in range(len(entries))]
         results = result_from_entries(entries, candles, stop_losses, rrratios)
 
         print(f"Results: {results}")
         print(f"Win rate: {sum(r > 0 for r in results) / len(results)}")
         print(f"Number of trades: {len(results)}")
-        print(f"Total: {sum(results)}")
+        print(f"Number of days: {days}")
+        sharpe, annual_sharpe = calculate_sharpe(results, days)
+        print(f"Sharpe: {sharpe:.3f}, Annualized Sharpe: {annual_sharpe:.3f}")
 
-        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=volume_profiles, entries=entries)
+        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=entries)
 
 
 
