@@ -146,6 +146,13 @@ def detect_entries(candles, volume_profiles):
 
     return entries
 
+def result_from_entries(entries, candles, stop_losses, rrratios):
+    results = []
+    for entry in entries:
+        entry_time = entry["entry_time"]
+        entry_price = entry["entry_price"]
+        
+
 def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
     opens, highs, lows, closes, volumes = zip(*[(c.open, c.high, c.low, c.close, c.volume) for c in candles])
@@ -235,6 +242,10 @@ if __name__ == "__main__":
 
         entries = detect_entries(candles, volume_profiles)
 
+        stop_losses = [20 for i range(len(entries))]
+        rrratios = [2 for i range(len(entries))]
+        results = result_from_entries(entries, candles, stop_losses, rrratios)
+
         visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=volume_profiles, entries=entries)
 
 
@@ -248,5 +259,5 @@ Calcular Volume Profile OK
 Plotar POC OK
 Add entry signals OK
 Fix decide_entry_direction OK
-Fix price step (futures should be 0.0005)
+Fix price step (futures should be 0.0005) OK
 '''
