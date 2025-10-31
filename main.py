@@ -42,27 +42,50 @@ def load_raw_data(date, path="./data", max_files=None):
     return count, result
 
 
-def make_candles(dataset, freq="25min", symbol=None):
+def make_candles(dataset, freq="25min", symbol=None, roll_schedule=None):
     print(f"\nMaking candles with freq={freq}...")
     df = dataset[["ts_event", "price", "size", "symbol"]].copy()
-    df["datetime"] = pd.to_datetime(df["ts_event"])
+    df["datetime"] = pd.to_datetime(df["ts_event"], utc=True)  # ✅ ensure UTC
 
+    # Auto-select most common symbol if none provided
     if symbol is None:
         symbol = df["symbol"].value_counts().idxmax()
 
     print(f"  Symbol: {symbol}")
     df = df[df["symbol"] == symbol]
 
+    # 🔹 Filter by roll_schedule if provided
+    if roll_schedule and symbol in roll_schedule:
+        start_date, end_date = roll_schedule[symbol]
+        # ✅ make both tz-aware (UTC)
+        start_date = pd.to_datetime(start_date).tz_localize("UTC")
+        end_date = pd.to_datetime(end_date).tz_localize("UTC")
 
+        df = df[(df["datetime"] >= start_date) & (df["datetime"] < end_date)]
+        print(f"  Date range for {symbol}: {start_date.date()} → {end_date.date()}")
+    else:
+        print(f"  No roll schedule found for {symbol}")
 
+    # Safety check for empty data after filtering
+    if df.empty:
+        print(f"  ⚠️ No data for {symbol} in this range.")
+        return []
+
+    # 🔹 Resample into candles
     candles_df = (
         df.groupby(pd.Grouper(key="datetime", freq=freq))
-        .agg(Open=("price", "first"), High=("price", "max"), Low=("price", "min"),
-             Close=("price", "last"), Volume=("size", "sum"))
+        .agg(Open=("price", "first"),
+             High=("price", "max"),
+             Low=("price", "min"),
+             Close=("price", "last"),
+             Volume=("size", "sum"))
         .dropna()
         .reset_index()
     )
 
-    print(f"  Created {len(candles_df)} candles")
-    return [Candle(row['datetime'], row['Open'], row['High'], row['Low'], row['Close'], row['Volume'])
-            for _, row in candles_df.iterrows()]
+    print(f"  Created {len(candles_df)} candles for {symbol}")
+    return [
+        Candle(row['datetime'], row['Open'], row['High'], row['Low'], row['Close'], row['Volume'])
+        for _, row in candles_df.iterrows()
+    ]
+

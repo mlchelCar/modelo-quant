@@ -280,13 +280,26 @@ if __name__ == "__main__":
     days, dataset = load_raw_data(date, max_files=None)
 
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
-    symbols = ["6EZ5"]
+    # symbols = ["6EZ5"]
+
+    roll_schedule = {
+    "6EH4": ("2024-12-14", "2024-03-15"),
+    "6EM4": ("2024-03-15", "2024-06-14"),
+    "6EU4": ("2024-06-14", "2024-09-14"),
+    "6EZ4": ("2024-09-14", "2024-12-14"),
+    "6EH5": ("2024-12-14", "2025-03-15"),
+    "6EM5": ("2025-03-15", "2025-06-14"),
+    "6EU5": ("2025-06-14", "2025-09-14"),
+    "6EZ5": ("2025-09-14", "2025-12-14"),
+}
+
     short_ma = 20
     long_ma = 50
     freq="25min"
-
+    
+    results = []
     for s in symbols:
-        candles = make_candles(dataset, freq, symbol=s)
+        candles = make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule)
         
         if not candles:
             print(f"No candles for {s}")
@@ -317,17 +330,18 @@ if __name__ == "__main__":
         entries = detect_entries(candles, volume_profiles)
 
         stop_losses = [0.0002 for i in range(len(entries))]
-        rrratios = [4 for i in range(len(entries))]
-        results = result_from_entries(entries, candles, stop_losses, rrratios)
+        rrratios = [3 for i in range(len(entries))]
+        for r in result_from_entries(entries, candles, stop_losses, rrratios):
+            results.append(r)
+        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=None, entries=entries)
 
-        print(f"Results: {results}")
-        print(f"Win rate: {sum(r > 0 for r in results) / len(results)}")
-        print(f"Number of trades: {len(results)}")
-        print(f"Number of days: {days}")
-        sharpe, annual_sharpe = calculate_sharpe(results, days)
-        print(f"Sharpe: {sharpe:.3f}, Annualized Sharpe: {annual_sharpe:.3f}")
+    print(f"Results: {results}")
+    print(f"Win rate: {sum(r > 0 for r in results) / len(results)}")
+    print(f"Number of trades: {len(results)}")
+    print(f"Number of days: {days}")
+    sharpe, annual_sharpe = calculate_sharpe(results, days)
+    print(f"Sharpe: {sharpe:.3f}, Annualized Sharpe: {annual_sharpe:.3f}")
 
-        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=entries)
 
 
 
