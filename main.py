@@ -18,6 +18,7 @@ class Candle:
 
 def load_raw_data(date, path="./data", max_files=None):
     print(f"Loading data from {path} with date >= {date}...")
+    last_date = None
     data_path = Path(path)
     if not data_path.exists():
         raise ValueError(f"Path {path} does not exist")
