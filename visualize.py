@@ -196,7 +196,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios):
                     result = rr
                     break
 
-        results.append(result)
+        results.append((entry_time, result))
 
     return results
 
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     # Load last 60 days of data (faster rendering, still plenty of data)
     # Change max_files to load more/less data
     date = int(sys.argv[1])
-    days, dataset = load_raw_data(date, max_files=None)
+    dataset, days, first_date, last_date  = load_raw_data(date, max_files=None)
 
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
     # symbols = ["6EZ5"]
@@ -290,8 +290,7 @@ if __name__ == "__main__":
     "6EH5": ("2024-12-14", "2025-03-15"),
     "6EM5": ("2025-03-15", "2025-06-14"),
     "6EU5": ("2025-06-14", "2025-09-14"),
-    "6EZ5": ("2025-09-14", "2025-12-14"),
-}
+    "6EZ5": ("2025-09-14", "2025-12-14"),}
 
     short_ma = 20
     long_ma = 50
@@ -334,12 +333,19 @@ if __name__ == "__main__":
         for r in result_from_entries(entries, candles, stop_losses, rrratios):
             results.append(r)
         visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=None, entries=entries)
+    
+    result_sum = 0
+    for r in results:result_sum += r[1]
 
     print(f"Results: {results}")
-    print(f"Win rate: {sum(r > 0 for r in results) / len(results)}")
+    print(f"Win rate: {result_sum / len(results)}")
+    print(f"EV: {result_sum / len(results)}")
     print(f"Number of trades: {len(results)}")
     print(f"Number of days: {days}")
-    sharpe, annual_sharpe = calculate_sharpe(results, days)
+
+    #we need to fix this sharpe function, also there is a problem with the annual_trading_days
+    #cause in fx we can trade in sundays (monday in australia)
+    sharpe, annual_sharpe = calculate_sharpe(results, days, first_date, last_date)
     print(f"Sharpe: {sharpe:.3f}, Annualized Sharpe: {annual_sharpe:.3f}")
 
 
@@ -356,5 +362,6 @@ Add entry signals OK
 Fix decide_entry_direction OK
 Fix price step (futures should be 0.0005) OK
 Calculare result from each entrie OK
-Fix simbols with duplicate entries OK
+Fix symbol with duplicate entries OK
+Fix sharpe calculation
 '''

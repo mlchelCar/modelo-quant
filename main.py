@@ -39,7 +39,7 @@ def load_raw_data(date, path="./data", max_files=None):
     print(f"Combining {len(dfs)} files...")
     result = pd.concat(dfs, ignore_index=True)
     print(f"Total: {len(result):,} rows")
-    return count, result
+    return result, count, date, last_date
 
 
 def make_candles(dataset, freq="25min", symbol=None, roll_schedule=None):
