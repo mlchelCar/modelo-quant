@@ -5,6 +5,7 @@ from main import load_raw_data, make_candles
 import numpy as np
 import sys
 from pandas import Timestamp
+from scipy.stats import bootstrap
 
 def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
     print(f"\nCalculating volume profile from {len(trades_df)} trades...")
@@ -142,12 +143,12 @@ def detect_entries(candles, volume_profiles):
             entry_type = decide_entry_direction(b_close, poc, c)
 
             if entry_type:
-                entries.append({ "B": B, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type})
+                entries.append({ "B": B_time, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type})
                 break  # stop after first touch
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios):
+def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, costs=7):
     results = []
 
     for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
@@ -184,17 +185,17 @@ def result_from_entries(entries, candles, stop_losses, rrratios):
 
             if direction == "long":
                 if low <= stop_level:
-                    result = -1
+                    result = -1*win_size - costs
                     break
                 elif high >= target_level:
-                    result = rr
+                    result = rr*win_size - costs
                     break
             else:
                 if high >= stop_level:
-                    result = -1
+                    result = -1*win_size - costs
                     break
                 elif low <= target_level:
-                    result = rr
+                    result = rr*win_size - costs
                     break
 
         results.append((entry_time, result))
@@ -248,72 +249,145 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     fig.show()
 
-def calculate_sharpe(results):
-    annual_trading_days = 252 #for stocks/forex
-    risk_free_rate = 0
+def calculate_sharpe(returns, risk_free_rate=0.0, trading_days=252):
+    """
+    Calculate daily and annualized Sharpe ratio and 95% bootstrap CI.
+    """
+    returns = np.array(returns, dtype=float)
+    if len(returns) == 0:
+        return 0.0, 0.0, (0.0, 0.0)
 
-    r = np.array(results, dtype=float)
-    if len(r) < 2:
-        raise ValueError("Need at least two return values to compute Sharpe ratio")
+    # Excess returns
+    excess = returns - risk_free_rate
 
-    # Compute mean and std of returns
-    mean_r = np.mean(r)
-    std_r = np.std(r, ddof=1)
+    mean_return = np.mean(excess)
+    std_return = np.std(excess, ddof=1)
 
-    # Avoid division by zero
-    if std_r == 0:
-        raise ValueError("Standard deviation of returns is zero")
+    if std_return == 0:
+        sharpe = 0.0
+    else:
+        sharpe = mean_return / std_return
 
-    # Sharpe ratio for the given period
-    sharpe = (mean_r - risk_free_rate) / std_r
+    annualized_sharpe = sharpe * np.sqrt(trading_days)
+
+    # Bootstrap 95% confidence interval
+    try:
+        res = bootstrap(
+            (excess,),
+            np.mean,
+            confidence_level=0.95,
+            random_state=42,
+            n_resamples=5000,
+            method="percentile"
+        )
+        ci_low, ci_high = res.confidence_interval.low, res.confidence_interval.high
+        # Convert to Sharpe scale
+        ci_low = (ci_low / std_return) * np.sqrt(trading_days)
+        ci_high = (ci_high / std_return) * np.sqrt(trading_days)
+    except Exception:
+        ci_low, ci_high = np.nan, np.nan
+
+    return sharpe, annualized_sharpe, (ci_low, ci_high)
 
 
-    # Annualize Sharpe
-    annualized_sharpe = sharpe * np.sqrt(annual_trading_days)
+def calculate_winrate(returns):
+    """Percentage of positive returns."""
+    returns = np.array(returns, dtype=float)
+    if len(returns) == 0:
+        return 0.0
+    wins = np.sum(returns > 0)
+    return (wins / len(returns)) * 100
 
-    return sharpe, annualized_sharpe
+def calculate_max_drawdown(returns):
+    """Compute max drawdown from cumulative equity curve."""
+    equity = np.cumsum(returns)
+    peaks = np.maximum.accumulate(equity)
+    drawdowns = equity - peaks
+    max_drawdown = drawdowns.min()
+    return max_drawdown
 
-def calculate_winrate(results):
-    wins = sum(1 for r in results if r > 0)
-    total_trades = len(results)
-    win_rate = wins / total_trades if total_trades > 0 else 0
-    return win_rate
 
-def compute_data(trade_list, days_traded, first_date, last_date):
+def calculate_profit_factor(returns):
+    """Sum of positive returns / absolute sum of negative returns."""
+    returns = np.array(returns, dtype=float)
+    gross_profit = np.sum(returns[returns > 0])
+    gross_loss = np.abs(np.sum(returns[returns < 0]))
+    if gross_loss == 0:
+        return np.inf
+    return gross_profit / gross_loss
 
+
+def calculate_expectancy(returns):
+    """Average profit per trade (mean return)."""
+    returns = np.array(returns, dtype=float)
+    if len(returns) == 0:
+        return 0.0
+    return np.mean(returns)
+
+
+def compute_data(trade_list, days_traded, first_date, last_date, l = None):
+    """
+    Compute all key strategy metrics.
+    """
     # trade_list = [(Timestamp('2024-10-24 06:25:00'), -1), (Timestamp('2024-10-28 12:05:00'), -1), (Timestamp('2024-10-29 11:50:00'), -1), (Timestamp('2024-10-29 08:05:00'), -1), (Timestamp('2024-10-29 10:10:00'), -1), (Timestamp('2024-10-29 20:10:00'), -1), (Timestamp('2024-11-06 02:20:00'), -1), (Timestamp('2024-11-01 11:55:00'), -1), (Timestamp('2024-11-01 13:35:00'), -1), (Timestamp('2024-11-03 22:40:00'), -1), (Timestamp('2024-11-06 00:40:00'), -1), (Timestamp('2024-11-05 10:55:00'), -1), (Timestamp('2024-11-06 00:15:00'), -1), (Timestamp('2024-11-08 16:00:00'), -1), (Timestamp('2024-11-08 11:00:00'), -1), (Timestamp('2024-11-08 12:15:00'), -1), (Timestamp('2024-11-13 13:55:00'), -1), (Timestamp('2024-11-15 08:25:00'), -1), (Timestamp('2024-11-15 19:40:00'), -1), (Timestamp('2024-11-15 18:00:00'), -1), (Timestamp('2024-11-15 17:35:00'), 3), (Timestamp('2024-11-18 10:10:00'), -1), (Timestamp('2024-11-19 12:25:00'), -1), (Timestamp('2024-11-19 16:10:00'), -1), (Timestamp('2024-11-29 07:25:00'), 3), (Timestamp('2024-11-25 01:20:00'), -1), (Timestamp('2024-11-26 04:00:00'), 3), (Timestamp('2024-11-26 15:40:00'), -1), (Timestamp('2024-11-27 07:30:00'), -1), (Timestamp('2024-12-02 14:35:00'), -1), (Timestamp('2024-11-29 00:20:00'), -1), (Timestamp('2024-12-01 23:10:00'), 3), (Timestamp('2024-11-29 14:55:00'), -1), (Timestamp('2024-12-01 22:45:00'), -1), (Timestamp('2024-12-05 13:50:00'), -1), (Timestamp('2024-12-04 03:15:00'), 3), (Timestamp('2024-12-04 05:20:00'), 3), (Timestamp('2024-12-04 08:15:00'), -1), (Timestamp('2024-12-04 11:35:00'), 3), (Timestamp('2024-12-11 07:20:00'), -1), (Timestamp('2024-12-09 09:55:00'), 3), (Timestamp('2024-12-09 12:00:00'), -1), (Timestamp('2024-12-12 08:20:00'), -1), (Timestamp('2024-12-12 14:35:00'), -1), (Timestamp('2024-12-13 14:45:00'), 3), (Timestamp('2024-12-16 15:35:00'), 3), (Timestamp('2024-12-16 20:10:00'), -1), (Timestamp('2024-12-17 14:05:00'), 3), (Timestamp('2024-12-18 05:55:00'), 3), (Timestamp('2024-12-18 09:40:00'), 3), (Timestamp('2024-12-20 13:20:00'), -1), (Timestamp('2024-12-27 12:00:00'), 3), (Timestamp('2024-12-26 06:50:00'), -1), (Timestamp('2024-12-26 07:40:00'), 3), (Timestamp('2024-12-26 11:50:00'), -1), (Timestamp('2024-12-26 12:40:00'), -1), (Timestamp('2024-12-30 13:45:00'), -1), (Timestamp('2024-12-26 14:45:00'), -1), (Timestamp('2024-12-30 13:45:00'), -1), (Timestamp('2024-12-30 09:35:00'), -1), (Timestamp('2024-12-30 13:45:00'), -1), (Timestamp('2025-01-24 06:15:00'), -1), (Timestamp('2025-01-06 08:40:00'), -1), (Timestamp('2025-01-03 16:30:00'), -1), (Timestamp('2025-01-08 11:30:00'), 3), (Timestamp('2025-01-20 13:30:00'), -1), (Timestamp('2025-01-10 13:30:00'), -1), (Timestamp('2025-01-14 20:00:00'), -1), (Timestamp('2025-01-14 01:40:00'), -1), (Timestamp('2025-01-16 15:20:00'), -1), (Timestamp('2025-01-16 17:50:00'), -1), (Timestamp('2025-01-17 08:50:00'), 3), (Timestamp('2025-01-17 10:55:00'), 3), (Timestamp('2025-01-17 14:40:00'), -1), (Timestamp('2025-01-17 20:55:00'), -1), (Timestamp('2025-01-20 03:30:00'), -1), (Timestamp('2025-02-03 15:00:00'), 3), (Timestamp('2025-01-21 15:20:00'), -1), (Timestamp('2025-01-31 21:10:00'), 3), (Timestamp('2025-01-23 10:15:00'), 3), (Timestamp('2025-01-29 08:45:00'), 3), (Timestamp('2025-01-27 08:50:00'), -1), (Timestamp('2025-01-27 23:00:00'), -1), (Timestamp('2025-02-14 13:30:00'), 3), (Timestamp('2025-01-30 03:05:00'), 3), (Timestamp('2025-01-30 07:40:00'), 3), (Timestamp('2025-01-30 20:35:00'), -1), (Timestamp('2025-01-31 17:00:00'), -1), (Timestamp('2025-01-31 18:15:00'), -1), (Timestamp('2025-02-05 10:20:00'), -1), (Timestamp('2025-02-06 07:35:00'), -1), (Timestamp('2025-02-07 13:10:00'), -1), (Timestamp('2025-02-07 01:30:00'), -1), (Timestamp('2025-02-07 03:35:00'), 3), (Timestamp('2025-02-07 07:20:00'), -1), (Timestamp('2025-02-07 09:50:00'), -1), (Timestamp('2025-02-07 13:10:00'), 3), (Timestamp('2025-02-12 13:10:00'), 3), (Timestamp('2025-02-28 02:05:00'), 3), (Timestamp('2025-02-20 14:30:00'), 3), (Timestamp('2025-02-21 13:25:00'), -1), (Timestamp('2025-02-24 14:45:00'), 3), (Timestamp('2025-02-24 16:50:00'), -1), (Timestamp('2025-02-27 02:45:00'), -1), (Timestamp('2025-02-26 15:30:00'), -1), (Timestamp('2025-02-26 17:35:00'), 3), (Timestamp('2025-03-04 08:10:00'), -1), (Timestamp('2025-03-03 06:45:00'), -1), (Timestamp('2025-03-10 10:50:00'), -1), (Timestamp('2025-03-10 17:30:00'), 3), (Timestamp('2025-03-11 05:35:00'), 3), (Timestamp('2025-03-12 15:20:00'), -1), (Timestamp('2025-03-12 18:15:00'), -1), (Timestamp('2025-03-17 08:05:00'), -1), (Timestamp('2025-03-17 09:20:00'), -1), (Timestamp('2025-04-03 05:05:00'), -1), (Timestamp('2025-03-24 12:10:00'), -1), (Timestamp('2025-03-31 02:30:00'), 3), (Timestamp('2025-03-25 15:40:00'), 3), (Timestamp('2025-03-27 15:10:00'), -1), (Timestamp('2025-03-27 11:25:00'), -1), (Timestamp('2025-03-28 12:50:00'), -1), (Timestamp('2025-04-01 00:35:00'), 3), (Timestamp('2025-04-01 06:00:00'), -1), (Timestamp('2025-04-01 08:55:00'), 3), (Timestamp('2025-04-02 12:50:00'), -1), (Timestamp('2025-04-04 12:20:00'), -1), (Timestamp('2025-04-09 04:25:00'), -1), (Timestamp('2025-04-08 07:35:00'), -1), (Timestamp('2025-04-08 19:15:00'), 3), (Timestamp('2025-04-09 17:45:00'), -1), (Timestamp('2025-04-10 08:20:00'), -1), (Timestamp('2025-04-14 17:45:00'), -1), (Timestamp('2025-04-22 22:25:00'), 3), (Timestamp('2025-04-17 07:25:00'), -1), (Timestamp('2025-04-17 09:55:00'), -1), (Timestamp('2025-04-17 12:50:00'), 3), (Timestamp('2025-04-22 22:00:00'), -1), (Timestamp('2025-04-22 11:35:00'), 3), (Timestamp('2025-04-24 15:15:00'), -1), (Timestamp('2025-04-25 14:35:00'), 3), (Timestamp('2025-04-25 19:35:00'), -1), (Timestamp('2025-04-28 04:40:00'), -1), (Timestamp('2025-04-28 06:20:00'), -1), (Timestamp('2025-04-28 12:10:00'), -1), (Timestamp('2025-04-30 01:40:00'), 3), (Timestamp('2025-04-29 10:40:00'), -1), (Timestamp('2025-04-29 14:50:00'), 3), (Timestamp('2025-04-30 06:40:00'), 3), (Timestamp('2025-05-02 13:40:00'), -1), (Timestamp('2025-05-05 00:50:00'), -1), (Timestamp('2025-05-05 15:50:00'), -1), (Timestamp('2025-05-06 07:15:00'), -1), (Timestamp('2025-05-07 19:30:00'), -1), (Timestamp('2025-05-21 10:10:00'), -1), (Timestamp('2025-05-11 21:50:00'), -1), (Timestamp('2025-05-19 09:00:00'), -1), (Timestamp('2025-05-15 00:25:00'), -1), (Timestamp('2025-05-15 07:30:00'), 3), (Timestamp('2025-05-16 00:35:00'), 3), (Timestamp('2025-05-16 13:55:00'), -1), (Timestamp('2025-05-19 06:05:00'), -1), (Timestamp('2025-05-22 17:00:00'), -1), (Timestamp('2025-05-28 05:05:00'), -1), (Timestamp('2025-05-27 07:50:00'), 3), (Timestamp('2025-05-30 12:05:00'), -1), (Timestamp('2025-05-30 16:15:00'), 3), (Timestamp('2025-06-04 13:45:00'), -1), (Timestamp('2025-06-06 12:25:00'), 3), (Timestamp('2025-06-06 07:50:00'), -1), (Timestamp('2025-06-09 12:30:00'), -1), (Timestamp('2025-06-09 15:00:00'), -1), (Timestamp('2025-06-10 01:50:00'), -1), (Timestamp('2025-06-10 11:00:00'), -1), (Timestamp('2025-06-10 15:10:00'), -1), (Timestamp('2025-06-11 05:45:00'), 3), (Timestamp('2025-06-11 12:25:00'), 3), (Timestamp('2025-06-13 19:50:00'), 3), (Timestamp('2025-06-15 22:55:00'), 3), (Timestamp('2025-06-16 04:45:00'), -1), (Timestamp('2025-06-17 14:30:00'), -1), (Timestamp('2025-06-23 21:45:00'), -1), (Timestamp('2025-06-17 12:25:00'), -1), (Timestamp('2025-06-23 18:00:00'), -1), (Timestamp('2025-06-19 23:10:00'), -1), (Timestamp('2025-06-23 05:55:00'), 3), (Timestamp('2025-07-30 12:30:00'), -1), (Timestamp('2025-06-25 10:00:00'), -1), (Timestamp('2025-07-15 14:10:00'), -1), (Timestamp('2025-06-27 06:35:00'), -1), (Timestamp('2025-06-27 17:50:00'), -1), (Timestamp('2025-07-03 12:10:00'), 3), (Timestamp('2025-07-03 12:10:00'), -1), (Timestamp('2025-07-07 06:10:00'), -1), (Timestamp('2025-07-08 10:05:00'), -1), (Timestamp('2025-07-22 16:10:00'), 3), (Timestamp('2025-07-10 11:40:00'), -1), (Timestamp('2025-07-22 15:20:00'), -1), (Timestamp('2025-07-14 12:20:00'), -1), (Timestamp('2025-07-14 14:00:00'), -1), (Timestamp('2025-07-14 14:50:00'), 3), (Timestamp('2025-07-15 05:25:00'), -1), (Timestamp('2025-07-15 11:15:00'), -1), (Timestamp('2025-07-15 07:05:00'), -1), (Timestamp('2025-07-15 10:00:00'), -1), (Timestamp('2025-07-15 12:30:00'), 3), (Timestamp('2025-07-15 12:55:00'), -1), (Timestamp('2025-07-16 15:10:00'), -1), (Timestamp('2025-07-17 00:20:00'), -1), (Timestamp('2025-07-18 08:00:00'), -1), (Timestamp('2025-07-28 17:10:00'), -1), (Timestamp('2025-07-21 00:35:00'), -1), (Timestamp('2025-07-21 00:10:00'), -1), (Timestamp('2025-07-21 04:45:00'), -1), (Timestamp('2025-07-28 13:25:00'), -1), (Timestamp('2025-07-28 07:10:00'), -1), (Timestamp('2025-07-24 20:15:00'), -1), (Timestamp('2025-07-27 22:00:00'), 3), (Timestamp('2025-07-28 06:20:00'), -1), (Timestamp('2025-08-05 06:25:00'), 3), (Timestamp('2025-08-07 15:05:00'), -1), (Timestamp('2025-08-08 05:40:00'), 3), (Timestamp('2025-08-08 14:00:00'), -1), (Timestamp('2025-08-08 18:35:00'), -1), (Timestamp('2025-08-11 01:35:00'), -1), (Timestamp('2025-08-11 09:05:00'), -1), (Timestamp('2025-08-12 12:10:00'), -1), (Timestamp('2025-08-21 14:30:00'), -1), (Timestamp('2025-08-22 14:40:00'), -1), (Timestamp('2025-08-18 14:25:00'), -1), (Timestamp('2025-08-22 14:40:00'), -1), (Timestamp('2025-08-19 12:30:00'), -1), (Timestamp('2025-08-22 13:50:00'), -1), (Timestamp('2025-08-20 23:55:00'), -1), (Timestamp('2025-08-22 13:50:00'), -1), (Timestamp('2025-08-25 18:55:00'), -1), (Timestamp('2025-09-01 05:55:00'), -1), (Timestamp('2025-08-26 15:20:00'), -1), (Timestamp('2025-08-28 10:15:00'), -1), (Timestamp('2025-08-29 13:20:00'), -1), (Timestamp('2025-09-02 07:45:00'), -1), (Timestamp('2025-09-02 06:05:00'), -1), (Timestamp('2025-09-04 04:45:00'), 3), (Timestamp('2025-09-05 08:15:00'), -1), (Timestamp('2025-09-09 13:55:00'), -1), (Timestamp('2025-09-11 14:40:00'), 3), (Timestamp('2025-09-12 16:55:00'), -1), (Timestamp('2025-09-15 04:20:00'), 3), (Timestamp('2025-09-19 12:05:00'), 3), (Timestamp('2025-09-24 09:35:00'), -1), (Timestamp('2025-10-06 07:25:00'), -1), (Timestamp('2025-10-01 04:05:00'), -1), (Timestamp('2025-10-01 09:30:00'), -1), (Timestamp('2025-10-01 12:00:00'), -1), (Timestamp('2025-10-01 14:05:00'), -1), (Timestamp('2025-10-02 06:45:00'), 3), (Timestamp('2025-10-02 12:35:00'), -1), (Timestamp('2025-10-03 14:00:00'), 3), (Timestamp('2025-10-05 21:50:00'), -1), (Timestamp('2025-10-06 19:55:00'), -1), (Timestamp('2025-10-17 05:30:00'), -1), (Timestamp('2025-10-09 05:50:00'), -1), (Timestamp('2025-10-15 15:35:00'), 3), (Timestamp('2025-10-13 11:30:00'), -1), (Timestamp('2025-10-14 16:15:00'), -1), (Timestamp('2025-10-21 05:20:00'), -1), (Timestamp('2025-10-22 18:25:00'), -1)]
 
     # Ensure trade_list is sorted chronologically
-    trade_list = sorted(trade_list, key=lambda x: x[0])
 
-    # Create list of all weekdays between first_date and last_date (exclude Saturdays)
-    first_date = pd.to_datetime(str(first_date), format="%Y%m%d")
-    last_date = pd.to_datetime(str(last_date), format="%Y%m%d")
-    days = pd.date_range(start=first_date, end=last_date, freq="D")
-    
-    days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
+    if not l:
+        trade_list = sorted(trade_list, key=lambda x: x[0])
 
-    # Initialize dictionary to store daily returns
-    daily_returns = {day.date(): 0 for day in days}
+        # Create list of all weekdays between first_date and last_date (exclude Saturdays)
+        first_date = pd.to_datetime(str(first_date), format="%Y%m%d")
+        last_date = pd.to_datetime(str(last_date), format="%Y%m%d")
+        days = pd.date_range(start=first_date, end=last_date, freq="D")
+        
+        days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
 
-    # Group trades by day and sum results
-    trade_dict = {}
-    for trade in trade_list:
-        day = trade[0].date()
-        trade_dict[day] = trade_dict.get(day, 0) + trade[1]
+        # Initialize dictionary to store daily returns
+        daily_returns = {day.date(): 0 for day in days}
 
-    # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
-    for day in daily_returns:
-        daily_returns[day] = trade_dict.get(day, 0)
+        # Group trades by day and sum results
+        trade_dict = {}
+        for trade in trade_list:
+            day = trade[0].date()
+            trade_dict[day] = trade_dict.get(day, 0) + trade[1]
 
-    l = [i for i in daily_returns.values()]
+        # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
+        for day in daily_returns:
+            daily_returns[day] = trade_dict.get(day, 0)
 
-    print("l ", l)
-    sharpe = calculate_sharpe(l)
+        l = [i for i in daily_returns.values()]
+        l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns    
+
+    sharpe, annualized_sharpe, ci = calculate_sharpe(l)
     winrate = calculate_winrate(l)
-    return sharpe[0], sharpe[1], winrate
+    max_dd = calculate_max_drawdown(l)
+    profit_factor = calculate_profit_factor(l)
+    expectancy = calculate_expectancy(l)
 
-if __name__ == "__main__":
+    metrics = {
+        'Returns': l,
+        "Sharpe Ratio": round(sharpe, 3),
+        "Annualized Sharpe": round(annualized_sharpe, 3),
+        "Sharpe 95% CI": (round(ci[0], 3), round(ci[1], 3)),
+        "Win Rate (%)": round(winrate, 2),
+        "Max Drawdown": round(max_dd, 3),
+        "Profit Factor": round(profit_factor, 3),
+        "Expectancy": round(expectancy, 3),
+        "Total Trades": len(l)
+    }
+
+    return metrics
+
+
+
+def run_strategy(l = None):
+    if l:
+        print(f"Number of days: {days}")
+        metric = compute_data(results, days, first_date, last_date)
+        for m in metric:
+            print(f"{m}: {metric[m]}")
+
     # Load last 60 days of data (faster rendering, still plenty of data)
     # Change max_files to load more/less data
     date = int(sys.argv[1])
@@ -337,13 +411,16 @@ if __name__ == "__main__":
     freq="25min"
     
     results = []
+    all_candles = []
+    used_symbols = []
+    avolume_profiles = []
+    aentries = []
     for s in symbols:
         candles = make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule)
-        
+
         if not candles:
             print(f"No candles for {s}")
             continue
-
 
         ma_dict = calculate_moving_averages(candles, periods=(short_ma, long_ma))
         cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
@@ -365,6 +442,7 @@ if __name__ == "__main__":
 
             poc = calculate_poc(vp)
             volume_profiles.append({"A": A, "B": B, "poc": poc})
+            avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
         entries = detect_entries(candles, volume_profiles)
 
@@ -372,18 +450,25 @@ if __name__ == "__main__":
         rrratios = [3 for i in range(len(entries))]
         for r in result_from_entries(entries, candles, stop_losses, rrratios):
             results.append(r)
-        visualize_candles(candles, t=f"{s} {freq} Candlestick Chart", moving_averages=ma_dict, cross_up=cross_up, cross_down=cross_down, volume_profiles=None, entries=entries)
+
+        for t in candles: all_candles.append(t)
+        used_symbols.append(s)
+        for e in entries: aentries.append(e)
+
+    ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
+    across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ma_dict[long_ma])
+    visualize_candles(all_candles, t=f"6E {freq} Candlestick Chart", moving_averages=ama_dict, cross_up=across_up, cross_down=across_down, volume_profiles=None, entries=aentries)
     
     result_sum = 0
     for r in results:result_sum += r[1]
 
-    print(f"Number of trades: {len(results)}")
     print(f"Number of days: {days}")
-    sharpe, annual_sharpe = compute_data(results, days, first_date, last_date)
-    print(f"Sharpe: {sharpe:.3f}, Annualized Sharpe: {annual_sharpe:.3f}")
+    metric = compute_data(results, days, first_date, last_date)
+    for m in metric:
+        print(f"{m}: {metric[m]}")
 
-
-
+if __name__ == "__main__":
+    run_strategy()
 
 '''
 Todo
@@ -394,9 +479,12 @@ Calcular Volume Profile OK
 Plotar POC OK
 Add entry signals OK
 Fix decide_entry_direction OK
-Fix price step (futures should be 0.0005) OK
 Calculare result from each entrie OK
 Fix symbol with duplicate entries OK
-Fix sharpe calculation
-Optimize foad_data function
+Fix sharpe calculation OK
+Add Costs OK
+Optimize load_data function
+Generate p&l graph function
+Fit function
+Fit function on random data  In Sample Permutation Test: https://youtu.be/NLBXgSmRBgU?t=450
 '''
