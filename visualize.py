@@ -197,6 +197,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
                 elif low <= target_level:
                     result = rr*win_size - costs
                     break
+
         results.append((entry_time, result))
 
     return results
@@ -324,7 +325,7 @@ def calculate_expectancy(returns):
     return np.mean(returns)
 
 
-def compute_data(trade_list, days_traded, f, last_date, l = None):
+def compute_data(trade_list, last_date):
     """
     Compute all key strategy metrics.
     """
@@ -332,31 +333,30 @@ def compute_data(trade_list, days_traded, f, last_date, l = None):
 
     # Ensure trade_list is sorted chronologically
 
-    if not l:
-        trade_list = sorted(trade_list, key=lambda x: x[0])
+    trade_list = sorted(trade_list, key=lambda x: x[0])
 
-        # Create list of all weekdays between first_date and last_date (exclude Saturdays)
-        first_date = trade_list[0][0].normalize()
-        last_date = pd.to_datetime(str(last_date), format="%Y%m%d")
-        days = pd.date_range(start=first_date, end=last_date, freq="D")
-        
-        days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
+    # Create list of all weekdays between first_date and last_date (exclude Saturdays)
+    first_date = trade_list[0][0].normalize()
+    last_date = pd.to_datetime(str(last_date), format="%Y%m%d")
+    days = pd.date_range(start=first_date, end=last_date, freq="D")
+    
+    days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
 
-        # Initialize dictionary to store daily returns
-        daily_returns = {day.date(): 0 for day in days}
+    # Initialize dictionary to store daily returns
+    daily_returns = {day.date(): 0 for day in days}
 
-        # Group trades by day and sum results
-        trade_dict = {}
-        for trade in trade_list:
-            day = trade[0].date()
-            trade_dict[day] = trade_dict.get(day, 0) + trade[1]
-        
-        # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
-        for day in daily_returns:
-            daily_returns[day] = trade_dict.get(day, 0)
+    # Group trades by day and sum results
+    trade_dict = {}
+    for trade in trade_list:
+        day = trade[0].date()
+        trade_dict[day] = trade_dict.get(day, 0) + trade[1]
 
-        l = [i for i in daily_returns.values()]
-        l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns    
+    # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
+    for day in daily_returns:
+        daily_returns[day] = trade_dict.get(day, 0)
+
+    l = [i for i in daily_returns.values()]
+    l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns    
 
     sharpe, annualized_sharpe, ci = calculate_sharpe(l)
     winrate = calculate_winrate(l)
@@ -378,14 +378,27 @@ def compute_data(trade_list, days_traded, f, last_date, l = None):
 
     return metrics
 
+class Variant():
+    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n):
+        self.entries = entries
+        self.candles = candles
+        self.stop_losses = stop_losses
+        self.rrratios = rrratios
+        
+        self.name = n
+        self.metrics =  compute_data(result_from_entries(entries, candles, stop_losses, rrratios), last_date)
 
-
-def run_strategy(max_files=None):
+def run_strategy(l = None):
+    if l:
+        print(f"Number of days: {days}")
+        metric = compute_data(results, days, first_date, last_date)
+        for m in metric:
+            print(f"{m}: {metric[m]}")
 
     # Load last 60 days of data (faster rendering, still plenty of data)
     # Change max_files to load more/less data
     date = int(sys.argv[1])
-    dataset, days, first_date, last_date  = load_raw_data(date, max_files=max_files)
+    dataset, days, first_date, last_date  = load_raw_data(date, max_files=None)
 
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
     # symbols = ["6EZ5"]
@@ -404,22 +417,12 @@ def run_strategy(max_files=None):
     long_ma = 50
     freq="25min"
     
-    results_1A = []
-    results_2A = []
-    results_3A = []
-    results_4A = []
-    results_5A = []
-
-    results_1B = []
-    results_2B = []
-    results_3B = []
-    results_4B = []
-    results_5B = []
-
+    results = []
     all_candles = []
     used_symbols = []
     avolume_profiles = []
     aentries = []
+
     for s in symbols:
         candles = make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule)
 
@@ -450,60 +453,30 @@ def run_strategy(max_files=None):
             avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
         entries = detect_entries(candles, volume_profiles)
-
-        # stop_losses = [0.0002 for i in range(len(entries))]
-        # rrratios = [3 for i in range(len(entries))]
-        for r in result_from_entries(entries, candles, [0.0002 for i in range(len(entries))], [1 for i in range(len(entries))]):
-            results_1A.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0002 for i in range(len(entries))], [2 for i in range(len(entries))]):
-            results_2A.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0002 for i in range(len(entries))], [3 for i in range(len(entries))]):
-            results_3A.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0002 for i in range(len(entries))], [4 for i in range(len(entries))]):
-            results_4A.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0002 for i in range(len(entries))], [5 for i in range(len(entries))]):
-            results_5A.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0003 for i in range(len(entries))], [1 for i in range(len(entries))]):
-            results_1B.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0003 for i in range(len(entries))], [2 for i in range(len(entries))]):
-            results_2B.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0003 for i in range(len(entries))], [3 for i in range(len(entries))]):
-            results_3B.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0003 for i in range(len(entries))], [4 for i in range(len(entries))]):
-            results_4B.append(r)
-
-        for r in result_from_entries(entries, candles, [0.0003 for i in range(len(entries))], [5 for i in range(len(entries))]):
-            results_5B.append(r)
-
         for t in candles: all_candles.append(t)
         used_symbols.append(s)
         for e in entries: aentries.append(e)
+
+    for s in [10, 20, 30, 40, 50]:
+        for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+    # for s in [10, 20]:
+    #     for r in [0.5, 1, 10]:
+            name = f"{s}_{r}"
+            stop_losses = [s/100000 for i in range(len(entries))]
+            rrratios = [r for i in range(len(entries))]
+            results.append(Variant(aentries, all_candles, stop_losses, rrratios, last_date, name))
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
     visualize_candles(all_candles, t=f"6E {freq} Candlestick Chart", moving_averages=ama_dict, cross_up=across_up, cross_down=across_down, volume_profiles=None, entries=aentries)
 
-    # print(f"Number of days: {days}")
-    # metric = compute_data(results, days, first_date, last_date)
-    # for m in metric:
-    #     print(f"{m}: {metric[m]}")
 
-
-
-    for r in [results_1A, results_2A, results_3A, results_4A, results_5A, results_1B, results_2B, results_3B, results_4B, results_5B]:
-        print(f"\n\nNumber of days: {days}")
-        metric = compute_data(r, days, first_date, last_date)
-        for m in metric:
-            print(f"{m}: {metric[m]}")
-
+    for v in results:
+        print("\n")
+        print(v.name)
+        m = v.metrics
+        for k in m:
+            print(f"{k}: {m[k]}")
 
 if __name__ == "__main__":
     run_strategy()
