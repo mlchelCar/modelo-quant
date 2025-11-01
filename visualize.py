@@ -456,7 +456,7 @@ def run_strategy(l = None):
         for e in entries: aentries.append(e)
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
-    across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ma_dict[long_ma])
+    across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
     visualize_candles(all_candles, t=f"6E {freq} Candlestick Chart", moving_averages=ama_dict, cross_up=across_up, cross_down=across_down, volume_profiles=None, entries=aentries)
     
     result_sum = 0
