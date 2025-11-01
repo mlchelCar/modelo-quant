@@ -2,7 +2,7 @@ import databento as db
 import pandas as pd
 from pathlib import Path
 import re
-
+from concurrent.futures import ThreadPoolExecutor
 
 class Candle:
     __slots__ = ('time', 'open', 'high', 'low', 'close', 'volume')
@@ -15,7 +15,6 @@ class Candle:
         self.close = close
         self.volume = volume
 
-
 def load_raw_data(date, path="./data", max_files=None):
     print(f"Loading data from {path} with date >= {date}...")
     last_date = None
@@ -26,8 +25,9 @@ def load_raw_data(date, path="./data", max_files=None):
     dfs = []
     count = 0
     for file in sorted(data_path.glob("*.dbn")):
-        match = re.search(r'(\d{8})', file.name)
-        if match and int(match.group(1)) >= date:
+        if int(file.name[10:18]) >= date:
+            file_date = int(file.name[10:18])
+            last_date = file_date  # update last_date
             print(f"  [{count+1}] {file.name}")
             dfs.append(db.DBNStore.from_file(str(file)).to_df())
             count += 1
@@ -41,7 +41,6 @@ def load_raw_data(date, path="./data", max_files=None):
     result = pd.concat(dfs, ignore_index=True)
     print(f"Total: {len(result):,} rows")
     return result, count, date, last_date
-
 
 def make_candles(dataset, freq="25min", symbol=None, roll_schedule=None):
     print(f"\nMaking candles with freq={freq}...")
