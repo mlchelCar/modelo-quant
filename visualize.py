@@ -334,6 +334,9 @@ def compute_data(trade_list, last_date):
     # Ensure trade_list is sorted chronologically
 
     trade_list = sorted(trade_list, key=lambda x: x[0])
+    # print(trade_list)
+    # print(trade_list[0][0].normalize())
+    # quit()
 
     # Create list of all weekdays between first_date and last_date (exclude Saturdays)
     first_date = trade_list[0][0].normalize()
@@ -388,59 +391,68 @@ class Variant():
         self.name = n
         self.metrics =  compute_data(result_from_entries(entries, candles, stop_losses, rrratios), last_date)
 
-def run_strategy(l = None):
+def run_strategy(l=None):
     if l:
         print(f"Number of days: {days}")
         metric = compute_data(results, days, first_date, last_date)
         for m in metric:
             print(f"{m}: {metric[m]}")
 
-    # Load last 60 days of data (faster rendering, still plenty of data)
-    # Change max_files to load more/less data
+    # === Load data ===
     date = int(sys.argv[1])
-    dataset, days, first_date, last_date  = load_raw_data(date, max_files=None)
+    dataset, days, first_date, last_date = load_raw_data(date, max_files=None)
 
-    symbols = ["6EH4", "6EM4", "6EU4", "6EZ4","6EH5", "6EM5", "6EU5", "6EZ5"]
-    # symbols = ["6EZ5"]
-
+    symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
     roll_schedule = {
-    "6EH4": ("2024-12-14", "2024-03-15"),
-    "6EM4": ("2024-03-15", "2024-06-14"),
-    "6EU4": ("2024-06-14", "2024-09-14"),
-    "6EZ4": ("2024-09-14", "2024-12-14"),
-    "6EH5": ("2024-12-14", "2025-03-15"),
-    "6EM5": ("2025-03-15", "2025-06-14"),
-    "6EU5": ("2025-06-14", "2025-09-14"),
-    "6EZ5": ("2025-09-14", "2025-12-14"),}
+        "6EH4": ("2024-12-14", "2024-03-15"),
+        "6EM4": ("2024-03-15", "2024-06-14"),
+        "6EU4": ("2024-06-14", "2024-09-14"),
+        "6EZ4": ("2024-09-14", "2024-12-14"),
+        "6EH5": ("2024-12-14", "2025-03-15"),
+        "6EM5": ("2025-03-15", "2025-06-14"),
+        "6EU5": ("2025-06-14", "2025-09-14"),
+        "6EZ5": ("2025-09-14", "2025-12-14"),
+    }
 
     short_ma = 20
     long_ma = 50
-    freq="25min"
-    
-    results = []
+    freq = "25min"
+
     all_candles = []
     used_symbols = []
     avolume_profiles = []
     aentries = []
 
+    # === Build all candles ===
     for s in symbols:
-        for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule): all_candles.append(t)
-
-    fit_candles, test_candles = separate_data(all_candles, 50, 50) 
+        for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule):
+            all_candles.append(t)
 
     v_data = []
-    for candles in separate_data(all_candles):
+
+    # === Split data (fit/test) ===
+    data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
+    # data_splits = [all_candles, all_candles]
+
+
+    for split_index, candles in enumerate(data_splits):
+        print(f"\n🔹 Processing split {split_index+1}/{len(data_splits)} "
+              f"({candles[0].time} → {candles[-1].time})")
+
         results = []
         ma_dict = calculate_moving_averages(candles, periods=(short_ma, long_ma))
         cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
 
-         # === Build Volume Profiles between crossovers ===
+        # === Build Volume Profiles between crossovers ===
         volume_profiles = []
-        all_crosses = sorted([(i, "up") for i in cross_up] + [(i, "down") for i in cross_down], key=lambda x: x[0])
+        all_crosses = sorted(
+            [(i, "up") for i in cross_up] + [(i, "down") for i in cross_down],
+            key=lambda x: x[0]
+        )
 
         for i in range(len(all_crosses) - 1):
-            idx_a, type_a = all_crosses[i]
-            idx_b, type_b = all_crosses[i + 1]
+            idx_a, _ = all_crosses[i]
+            idx_b, _ = all_crosses[i + 1]
 
             A = pd.Timestamp(candles[idx_a].time).tz_localize(None)
             B = pd.Timestamp(candles[idx_b].time).tz_localize(None)
@@ -454,36 +466,70 @@ def run_strategy(l = None):
             avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
         entries = detect_entries(candles, volume_profiles)
-        
-        used_symbols.append(s)
-        for e in entries: aentries.append(e)
-        
-        for s in [10, 20, 30, 40, 50]:
-            for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-                name = f"{s}_{r}"
-                stop_losses = [s/100000 for i in range(len(entries))]
-                rrratios = [r for i in range(len(entries))]
-                results.append(Variant(aentries, all_candles, stop_losses, rrratios, last_date, name))
-    
-        v_data.append(results)
-    
+        print(f"🔸 Found {len(entries)} entries in this split.")
 
-    fit_data = v_data[0].sort(key=lambda x: x.metrics["Sharpe Ratio"], reverse=True)[:10]
-    test_data = v_data[1].sort(key=lambda x: x.metrics["Sharpe Ratio"], reverse=True)[:10]
+        used_symbols.append(s)
+        aentries.extend(entries)
+
+        if not entries:
+            print("⚠️ No entries detected, skipping Variant creation for this split.")
+            v_data.append([])  # keep structure consistent
+            continue
+
+        # === Create Variants ===
+        for stop in [10, 20, 30, 40, 50]:
+            for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+                name = f"{stop}_{r}"
+                stop_losses = [stop / 100000] * len(entries)
+                rrratios = [r] * len(entries)
+
+                try:
+                    variant = Variant(entries, candles, stop_losses, rrratios, last_date, name)
+                    if variant.metrics:  # only keep if metrics exist
+                        results.append(variant)
+                except Exception as e:
+                    print(f"⚠️ Error creating Variant {name}: {e}")
+
+        v_data.append(results)
+
+    # === Handle empty splits ===
+    if not any(v_data):
+        print("❌ No data splits produced valid variants.")
+        return
+
+    # === Rank and visualize ===
+    fit_data = sorted(v_data[0], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:10] if v_data[0] else []
+    test_data = sorted(v_data[1], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:10] if v_data[1] else []
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
-    visualize_candles(all_candles, t=f"6E {freq} Candlestick Chart", moving_averages=ama_dict, cross_up=across_up, cross_down=across_down, volume_profiles=None, entries=aentries)
 
-    for i in range(len(fit_data)):
-        print(f"\nFit Data {i}: {fit_data[i].name}")
-        for m in fit_data[i].metrics:
-            print(f"{m}: {fit_data[i].metrics[m]}")
-    
-    for i in range(len(test_data)):
-        print(f"\nTest Data {i}: {test_data[i].name}")
-        for m in test_data[i].metrics:
-            print(f"{m}: {test_data[i].metrics[m]}")
+    visualize_candles(
+        all_candles,
+        t=f"6E {freq} Candlestick Chart",
+        moving_averages=ama_dict,
+        cross_up=across_up,
+        cross_down=across_down,
+        volume_profiles=avolume_profiles,
+        entries=aentries
+    )
+
+    # === Print summary ===
+    if fit_data:
+        for i, v in enumerate(fit_data):
+            print(f"\n✅ Fit Variant {i+1}: {v.name}")
+            for m in v.metrics:
+                print(f"{m}: {v.metrics[m]}")
+    else:
+        print("⚠️ No fit data available.")
+
+    if test_data:
+        for i, v in enumerate(test_data):
+            print(f"\n🧩 Test Variant {i+1}: {v.name}")
+            for m in v.metrics:
+                print(f"{m}: {v.metrics[m]}")
+    else:
+        print("⚠️ No test data available.")
 
 if __name__ == "__main__":
     run_strategy()

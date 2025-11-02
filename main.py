@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import re
 from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
 
 class Candle:
     __slots__ = ('time', 'open', 'high', 'low', 'close', 'volume')
@@ -15,9 +16,38 @@ class Candle:
         self.close = close
         self.volume = volume
 
+    
+def separate_data(all_candles, number_days, first_date, last_date, fit_data_size):
+    candles = all_candles[:]
+    print(f"Separating data for {number_days} days...")
 
-def separate_data(all_candles, x, y):
-    pass
+    first_date = pd.to_datetime(str(first_date), format="%Y%m%d").tz_localize("UTC")
+    last_date = pd.to_datetime(str(last_date), format="%Y%m%d").tz_localize("UTC")
+    days = pd.date_range(start=first_date, end=last_date, freq="D")
+    
+    # saturdays = pd.date_range(start=first_date, end=last_date, freq='W-SAT', tz='UTC')
+    saturdays = [d for d in days if d.weekday() == 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
+
+    results = []
+
+    p = 0
+    for s in saturdays:
+        weeks = []
+        for c in candles[p:]:
+            if c.time >= s:
+                break
+            weeks.append(c)
+            p += 1
+        results.append(weeks)
+    results.append(candles[p:])
+
+    v = int(len(results)*fit_data_size)
+
+    fit_data = results[:v]
+    test_data = results[v:]
+
+
+    return [cd for wk in fit_data for cd in wk], [cd for wk in test_data for cd in wk]
 
 def load_raw_data(date, path="./data", max_files=None):
     print(f"Loading data from {path} with date >= {date}...")
