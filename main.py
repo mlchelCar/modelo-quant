@@ -15,6 +15,10 @@ class Candle:
         self.close = close
         self.volume = volume
 
+
+def separate_data(all_candles, x, y):
+    pass
+
 def load_raw_data(date, path="./data", max_files=None):
     print(f"Loading data from {path} with date >= {date}...")
     last_date = None

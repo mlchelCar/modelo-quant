@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
-from main import load_raw_data, make_candles
+from main import load_raw_data, make_candles, separate_data
 import numpy as np
 import sys
 from pandas import Timestamp
@@ -424,12 +424,13 @@ def run_strategy(l = None):
     aentries = []
 
     for s in symbols:
-        candles = make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule)
+        for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule): all_candles.append(t)
 
-        if not candles:
-            print(f"No candles for {s}")
-            continue
+    fit_candles, test_candles = separate_data(all_candles, 50, 50) 
 
+    v_data = []
+    for candles in separate_data(all_candles):
+        results = []
         ma_dict = calculate_moving_averages(candles, periods=(short_ma, long_ma))
         cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
 
@@ -453,30 +454,36 @@ def run_strategy(l = None):
             avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
         entries = detect_entries(candles, volume_profiles)
-        for t in candles: all_candles.append(t)
+        
         used_symbols.append(s)
         for e in entries: aentries.append(e)
+        
+        for s in [10, 20, 30, 40, 50]:
+            for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+                name = f"{s}_{r}"
+                stop_losses = [s/100000 for i in range(len(entries))]
+                rrratios = [r for i in range(len(entries))]
+                results.append(Variant(aentries, all_candles, stop_losses, rrratios, last_date, name))
+    
+        v_data.append(results)
+    
 
-    for s in [10, 20, 30, 40, 50]:
-        for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
-    # for s in [10, 20]:
-    #     for r in [0.5, 1, 10]:
-            name = f"{s}_{r}"
-            stop_losses = [s/100000 for i in range(len(entries))]
-            rrratios = [r for i in range(len(entries))]
-            results.append(Variant(aentries, all_candles, stop_losses, rrratios, last_date, name))
+    fit_data = v_data[0].sort(key=lambda x: x.metrics["Sharpe Ratio"], reverse=True)[:10]
+    test_data = v_data[1].sort(key=lambda x: x.metrics["Sharpe Ratio"], reverse=True)[:10]
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
     visualize_candles(all_candles, t=f"6E {freq} Candlestick Chart", moving_averages=ama_dict, cross_up=across_up, cross_down=across_down, volume_profiles=None, entries=aentries)
 
-
-    for v in results:
-        print("\n")
-        print(v.name)
-        m = v.metrics
-        for k in m:
-            print(f"{k}: {m[k]}")
+    for i in range(len(fit_data)):
+        print(f"\nFit Data {i}: {fit_data[i].name}")
+        for m in fit_data[i].metrics:
+            print(f"{m}: {fit_data[i].metrics[m]}")
+    
+    for i in range(len(test_data)):
+        print(f"\nTest Data {i}: {test_data[i].name}")
+        for m in test_data[i].metrics:
+            print(f"{m}: {test_data[i].metrics[m]}")
 
 if __name__ == "__main__":
     run_strategy()
