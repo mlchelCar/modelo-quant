@@ -6,15 +6,16 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 class Candle:
-    __slots__ = ('time', 'open', 'high', 'low', 'close', 'volume')
+    __slots__ = ('time', 'open', 'high', 'low', 'close', 'volume', 'symbol')
 
-    def __init__(self, time, open_, high, low, close, volume):
+    def __init__(self, time, open_, high, low, close, volume, symbol):
         self.time = time
         self.open = open_
         self.high = high
         self.low = low
         self.close = close
         self.volume = volume
+        self.symbol = symbol
 
     
 def separate_data(all_candles, number_days, first_date, last_date, fit_data_size):
@@ -47,7 +48,7 @@ def separate_data(all_candles, number_days, first_date, last_date, fit_data_size
     test_data = results[v:]
 
 
-    return [cd for wk in fit_data for cd in wk], [cd for wk in test_data for cd in wk]
+    return  [cd for wk in fit_data for cd in wk], [cd for wk in test_data for cd in wk]
 
 def load_raw_data(date, path="./data", max_files=None):
     print(f"Loading data from {path} with date >= {date}...")
@@ -119,7 +120,7 @@ def make_candles(dataset, freq="25min", symbol=None, roll_schedule=None):
 
     print(f"  Created {len(candles_df)} candles for {symbol}")
     return [
-        Candle(row['datetime'], row['Open'], row['High'], row['Low'], row['Close'], row['Volume'])
+        Candle(row['datetime'], row['Open'], row['High'], row['Low'], row['Close'], row['Volume'], symbol)
         for _, row in candles_df.iterrows()
     ]
 

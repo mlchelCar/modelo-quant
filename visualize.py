@@ -148,7 +148,7 @@ def detect_entries(candles, volume_profiles):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, costs=7):
+def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, costs=7, contracts=1):
     results = []
 
     for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
@@ -185,17 +185,17 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
 
             if direction == "long":
                 if low <= stop_level:
-                    result = -1*win_size - costs
+                    result = -1*win_size - costs*contracts
                     break
                 elif high >= target_level:
-                    result = rr*win_size - costs
+                    result = rr*win_size - costs*contracts
                     break
             else:
                 if high >= stop_level:
-                    result = -1*win_size - costs
+                    result = -1*win_size - costs*contracts
                     break
                 elif low <= target_level:
-                    result = rr*win_size - costs
+                    result = rr*win_size - costs*contracts
                     break
 
         results.append((entry_time, result))
@@ -340,7 +340,7 @@ def compute_data(trade_list, last_date):
 
     # Create list of all weekdays between first_date and last_date (exclude Saturdays)
     first_date = trade_list[0][0].normalize()
-    last_date = pd.to_datetime(str(last_date), format="%Y%m%d")
+    last_date = pd.to_datetime(str(last_date), format="mixed", dayfirst=False)
     days = pd.date_range(start=first_date, end=last_date, freq="D")
     
     days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
@@ -382,14 +382,14 @@ def compute_data(trade_list, last_date):
     return metrics
 
 class Variant():
-    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n):
+    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, c=1):
         self.entries = entries
         self.candles = candles
         self.stop_losses = stop_losses
         self.rrratios = rrratios
         
         self.name = n
-        self.metrics =  compute_data(result_from_entries(entries, candles, stop_losses, rrratios), last_date)
+        self.metrics =  compute_data(result_from_entries(entries, candles, stop_losses, rrratios, contracts=c), last_date)
 
 def run_strategy(l=None):
     if l:
@@ -432,8 +432,8 @@ def run_strategy(l=None):
 
     # === Split data (fit/test) ===
     data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
-    # data_splits = [all_candles, all_candles]
 
+    dt = str(data_splits[0][-1].time)[:10]
 
     for split_index, candles in enumerate(data_splits):
         print(f"\n🔹 Processing split {split_index+1}/{len(data_splits)} "
@@ -457,7 +457,10 @@ def run_strategy(l=None):
             A = pd.Timestamp(candles[idx_a].time).tz_localize(None)
             B = pd.Timestamp(candles[idx_b].time).tz_localize(None)
 
-            vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=s, bins=160)
+            if candles[idx_a].symbol != candles[idx_b].symbol:
+                continue
+
+            vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=candles[idx_a].symbol, bins=160)
             if vp is None:
                 continue
 
@@ -478,13 +481,19 @@ def run_strategy(l=None):
 
         # === Create Variants ===
         for stop in [10, 20, 30, 40, 50]:
+            contracts = 1
+            if stop == 10: contracts = 2
+
             for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
                 name = f"{stop}_{r}"
                 stop_losses = [stop / 100000] * len(entries)
                 rrratios = [r] * len(entries)
+                
+
+                if split_index: dt = last_date
 
                 try:
-                    variant = Variant(entries, candles, stop_losses, rrratios, last_date, name)
+                    variant = Variant(entries, candles, stop_losses, rrratios, dt, name, c=contracts)
                     if variant.metrics:  # only keep if metrics exist
                         results.append(variant)
                 except Exception as e:
@@ -547,8 +556,10 @@ Calculare result from each entrie OK
 Fix symbol with duplicate entries OK
 Fix sharpe calculation OK
 Add Costs OK
+Add Average Trade Duration
 Optimize load_data function
+Optimize volume profile function
 Generate p&l graph function
-Fit function
+Fit and Test separated OK
 Fit function on random data  In Sample Permutation Test: https://youtu.be/NLBXgSmRBgU?t=450
 '''
