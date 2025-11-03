@@ -47,7 +47,7 @@ def separate_data(all_candles, number_days, first_date, last_date, fit_data_size
     fit_data = results[:v]
     test_data = results[v:]
 
-
+    
     return  [cd for wk in fit_data for cd in wk], [cd for wk in test_data for cd in wk]
 
 def load_raw_data(date, path="./data", max_files=None):

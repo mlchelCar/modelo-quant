@@ -162,11 +162,11 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
 
         # Define levels
         if direction == "long":
-            stop_level = entry_price - sl_dist
-            target_level = entry_price + rr * sl_dist
+            stop_level = entry_price - sl_dist*5
+            target_level = entry_price + rr * sl_dist*5
         else:
-            stop_level = entry_price + sl_dist
-            target_level = entry_price - rr * sl_dist
+            stop_level = entry_price + sl_dist*5
+            target_level = entry_price - rr * sl_dist*5
 
         result = 0
         print(
@@ -203,7 +203,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
     return results
 
 
-def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None):
+def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
     opens, highs, lows, closes, volumes = zip(*[(c.open, c.high, c.low, c.close, c.volume) for c in candles])
     colors = ['green' if closes[i] >= opens[i] else 'red' for i in range(len(candles))]
@@ -228,11 +228,17 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
         # Longs (green upward triangles)
         if long_entries:
             fig.add_trace(go.Scatter(x=[e["entry_time"] for e in long_entries], y=[e["entry_price"] for e in long_entries], mode="markers", name="Long Entry", marker=dict(symbol="triangle-up", color="lime", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+            if sl and rrr:
+                fig.add_trace(go.Scatter( x=[e["entry_time"] for e in long_entries], y=[e["entry_price"] - sl*5 for e in long_entries], mode="markers", name="Stop Loss", marker=dict(symbol="x", color="pink", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+                fig.add_trace(go.Scatter( x=[e["entry_time"] for e in long_entries], y=[e["entry_price"] + rrr*sl*5 for e in long_entries], mode="markers", name="Target", marker=dict(symbol="x", color="cyan", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
 
         # Shorts (red downward triangles)
         if short_entries:
             fig.add_trace(go.Scatter( x=[e["entry_time"] for e in short_entries], y=[e["entry_price"] for e in short_entries], mode="markers", name="Short Entry", marker=dict(symbol="triangle-down", color="red", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
-
+            if sl and rrr:  
+                fig.add_trace(go.Scatter( x=[e["entry_time"] for e in short_entries], y=[e["entry_price"] + sl*5 for e in short_entries], mode="markers", name="Stop Loss", marker=dict(symbol="x", color="pink", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+                fig.add_trace(go.Scatter( x=[e["entry_time"] for e in short_entries], y=[e["entry_price"] - rrr*sl*5 for e in short_entries], mode="markers", name="Target", marker=dict(symbol="x", color="cyan", size=12, line=dict(width=1, color="black")), ), row=1, col=1)
+    
         # --- POC lines ---
     if volume_profiles:
         for vp in volume_profiles:
@@ -431,7 +437,8 @@ def run_strategy(l=None):
     v_data = []
 
     # === Split data (fit/test) ===
-    data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
+    # data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
+    data_splits = [all_candles, all_candles]
 
     dt = str(data_splits[0][-1].time)[:10]
 
@@ -520,7 +527,9 @@ def run_strategy(l=None):
         cross_up=across_up,
         cross_down=across_down,
         volume_profiles=avolume_profiles,
-        entries=aentries
+        entries=aentries,
+        sl=0.0002,
+        rrr=2
     )
 
     # === Print summary ===
@@ -557,8 +566,8 @@ Fix symbol with duplicate entries OK
 Fix sharpe calculation OK
 Add Costs OK
 Add Slippage OK
-Plot Entries stop and tp
-Fix entri step (0.0005)
+Plot Entries stop and tp OK
+Fix POC step (0.0005)
 Compute sharpe using % daily returns
 Add Average Trade Duration
 Control Trade Duration
