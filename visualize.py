@@ -183,19 +183,26 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
         if entry_time.tzinfo is not None:
             entry_time = entry_time.tz_convert(None)
 
-        # Define levels
-        if direction == "long":
-            stop_level = entry_price - sl_dist*5
-            target_level = entry_price + rr * sl_dist*5
+        # --- 1️⃣ Determine closing time ---
+        if entry_time.hour < 21:
+            closing_time = entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
         else:
-            stop_level = entry_price + sl_dist*5
-            target_level = entry_price - rr * sl_dist*5
+            closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0, second=0, microsecond=0)
+
+        # --- 2️⃣ Define stop/target levels ---
+        if direction == "long":
+            stop_level = entry_price - sl_dist * 5
+            target_level = entry_price + rr * sl_dist * 5
+        else:
+            stop_level = entry_price + sl_dist * 5
+            target_level = entry_price - rr * sl_dist * 5
 
         result = 0
-        print(
-            f"\nEntry at {entry_time}, price={entry_price:.5f}, dir={direction}, "
-            f"stop={stop_level:.5f}, target={target_level:.5f}"
-        )
+        print(f"\nEntry at {entry_time}, price={entry_price:.5f}, dir={direction}, " f"stop={stop_level:.5f}, target={target_level:.5f}, closing_time={closing_time}")
+
+        prev_close = entry_price
+        trade_closed = False
+
         for candle in candles:
             candle_time = candle.time
             if candle_time.tzinfo is not None:
@@ -204,27 +211,54 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
             if candle_time <= entry_time:
                 continue
 
-            high, low = candle.high, candle.low
+            high, low, close = candle.high, candle.low, candle.close
 
+            # --- Stop or Target first ---
             if direction == "long":
                 if low <= stop_level:
-                    result = -1*win_size - costs*contracts - slipage_on_losses
+                    result = -1 * win_size - costs * contracts - slipage_on_losses
+                    trade_closed = True
                     break
                 elif high >= target_level:
-                    result = rr*win_size - costs*contracts
+                    result = rr * win_size - costs * contracts
+                    trade_closed = True
                     break
             else:
                 if high >= stop_level:
-                    result = -1*win_size - costs*contracts - slipage_on_losses
+                    result = -1 * win_size - costs * contracts - slipage_on_losses
+                    trade_closed = True
                     break
                 elif low <= target_level:
-                    result = rr*win_size - costs*contracts
+                    result = rr * win_size - costs * contracts
+                    trade_closed = True
                     break
+
+            # --- Time-based closure check ---
+            if candle_time > closing_time:
+                # close at previous candle close
+                close = prev_close
+                if direction == "long":
+                    result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
+                else:
+                    result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
+                print(f"Closing trade at {closing_time} (using prev close {close:.5f}), result={result:.2f}")
+                trade_closed = True
+                break
+
+            prev_close = close  # keep track for next iteration
+
+        # --- Fallback: still open at the end ---
+        if not trade_closed:
+            print("Trade remained open — closing at last candle price.")
+            close = candles[-1].close
+            if direction == "long":
+                result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
+            else:
+                result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
 
         results.append((entry_time, result))
 
     return results
-
 
 def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
@@ -592,7 +626,7 @@ Plot Entries stop and tp             OK
 Fix POC step (0.0005)                OK
 Compute sharpe using % daily returns
 Add Metric Average Trade Duration
-Control Trade Duration
+Control Trade Duration               OK
 Optimize load_data function
 Optimize volume profile function     OK
 Generate p&l graph function
