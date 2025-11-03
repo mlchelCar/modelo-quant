@@ -148,7 +148,7 @@ def detect_entries(candles, volume_profiles):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, costs=7, contracts=1):
+def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, costs=7, contracts=1, slipage_on_losses=12.5):
     results = []
 
     for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
@@ -185,14 +185,14 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
 
             if direction == "long":
                 if low <= stop_level:
-                    result = -1*win_size - costs*contracts
+                    result = -1*win_size - costs*contracts - slipage_on_losses
                     break
                 elif high >= target_level:
                     result = rr*win_size - costs*contracts
                     break
             else:
                 if high >= stop_level:
-                    result = -1*win_size - costs*contracts
+                    result = -1*win_size - costs*contracts - slipage_on_losses
                     break
                 elif low <= target_level:
                     result = rr*win_size - costs*contracts
@@ -480,11 +480,11 @@ def run_strategy(l=None):
             continue
 
         # === Create Variants ===
-        for stop in [10, 20, 30, 40, 50]:
+        for stop in [10, 20]:
             contracts = 1
             if stop == 10: contracts = 2
 
-            for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+            for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20]:
                 name = f"{stop}_{r}"
                 stop_losses = [stop / 100000] * len(entries)
                 rrratios = [r] * len(entries)
@@ -507,8 +507,8 @@ def run_strategy(l=None):
         return
 
     # === Rank and visualize ===
-    fit_data = sorted(v_data[0], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:10] if v_data[0] else []
-    test_data = sorted(v_data[1], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:10] if v_data[1] else []
+    fit_data = sorted(v_data[0], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[0] else []
+    test_data = sorted(v_data[1], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[1] else []
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
@@ -556,7 +556,12 @@ Calculare result from each entrie OK
 Fix symbol with duplicate entries OK
 Fix sharpe calculation OK
 Add Costs OK
+Add Slippage OK
+Plot Entries stop and tp
+Fix entri step (0.0005)
+Compute sharpe using % daily returns
 Add Average Trade Duration
+Control Trade Duration
 Optimize load_data function
 Optimize volume profile function
 Generate p&l graph function
