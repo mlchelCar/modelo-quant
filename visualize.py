@@ -55,6 +55,7 @@ def calculate_poc(vp, return_volume=False):
 
     idx_max = np.argmax(vp["volumes"])
     poc_price = round(vp["price_bins"][idx_max],5)
+    poc_price = round(round(poc_price / 0.00005) * 0.00005, 5)
     poc_volume = vp["volumes"][idx_max]
 
     return (poc_price, poc_volume) if return_volume else poc_price
@@ -567,7 +568,7 @@ Fix sharpe calculation OK
 Add Costs OK
 Add Slippage OK
 Plot Entries stop and tp OK
-Fix POC step (0.0005)
+Fix POC step (0.0005) OK
 Compute sharpe using % daily returns
 Add Average Trade Duration
 Control Trade Duration
