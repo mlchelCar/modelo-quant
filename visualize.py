@@ -420,50 +420,22 @@ class Variant():
         self.name = n
         self.metrics =  compute_data(result_from_entries(entries, candles, stop_losses, rrratios, contracts=c), last_date)
 
-def run_strategy(l=None):
-    if l:
-        print(f"Number of days: {days}")
-        metric = compute_data(results, days, first_date, last_date)
-        for m in metric:
-            print(f"{m}: {metric[m]}")
-
-    # === Load data ===
-    date = int(sys.argv[1])
-    dataset, days, first_date, last_date = load_raw_data(date, max_files=None)
-
-    symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
-    roll_schedule = {
-        "6EH4": ("2024-12-14", "2024-03-15"),
-        "6EM4": ("2024-03-15", "2024-06-14"),
-        "6EU4": ("2024-06-14", "2024-09-14"),
-        "6EZ4": ("2024-09-14", "2024-12-14"),
-        "6EH5": ("2024-12-14", "2025-03-15"),
-        "6EM5": ("2025-03-15", "2025-06-14"),
-        "6EU5": ("2025-06-14", "2025-09-14"),
-        "6EZ5": ("2025-09-14", "2025-12-14"),
-    }
+def run_strategy(dataset, all_candles, data_splits, freq):
+    print(f"Running strategy on {len(data_splits)} splits.")
 
     short_ma = 20
     long_ma = 50
-    freq = "25min"
 
-    all_candles = []
     used_symbols = []
     avolume_profiles = []
     aentries = []
-
-    # === Build all candles ===
-    for s in symbols:
-        for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule):
-            all_candles.append(t)
-
     v_data = []
 
-    # === Split data (fit/test) ===
-    data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
-    # data_splits = [all_candles, all_candles]
+    if data_splits[1] == []:
+        data_splits = [data_splits[0]]
 
     dt = str(data_splits[0][-1].time)[:10]
+
 
     for split_index, candles in enumerate(data_splits):
         print(f"\n🔹 Processing split {split_index+1}/{len(data_splits)} "
@@ -538,7 +510,6 @@ def run_strategy(l=None):
 
     # === Rank and visualize ===
     fit_data = sorted(v_data[0], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[0] else []
-    test_data = sorted(v_data[1], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[1] else []
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
@@ -564,16 +535,44 @@ def run_strategy(l=None):
     else:
         print("⚠️ No fit data available.")
 
-    if test_data:
-        for i, v in enumerate(test_data):
-            print(f"\n🧩 Test Variant {i+1}: {v.name}")
-            for m in v.metrics:
-                print(f"{m}: {v.metrics[m]}")
-    else:
-        print("⚠️ No test data available.")
+    if len(v_data) > 1:
+        test_data = sorted(v_data[1], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[1] else []
+        if test_data:
+            for i, v in enumerate(test_data):
+                print(f"\n🧩 Test Variant {i+1}: {v.name}")
+                for m in v.metrics:
+                    print(f"{m}: {v.metrics[m]}")
+        else:
+            print("⚠️ No test data available.")
 
 if __name__ == "__main__":
-    run_strategy()
+
+    # === Load data ===
+    date = int(sys.argv[1])
+    dataset, days, first_date, last_date = load_raw_data(date, max_files=None)
+
+    freq = "25min"
+    symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
+    roll_schedule = {
+        "6EH4": ("2024-12-14", "2024-03-15"),
+        "6EM4": ("2024-03-15", "2024-06-14"),
+        "6EU4": ("2024-06-14", "2024-09-14"),
+        "6EZ4": ("2024-09-14", "2024-12-14"),
+        "6EH5": ("2024-12-14", "2025-03-15"),
+        "6EM5": ("2025-03-15", "2025-06-14"),
+        "6EU5": ("2025-06-14", "2025-09-14"),
+        "6EZ5": ("2025-09-14", "2025-12-14"),
+    }
+
+    # === Build all candles ===
+    all_candles = []
+    for s in symbols:
+        for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule):
+            all_candles.append(t)
+
+    # === Split data (fit/test) ===
+    data_splits = separate_data(all_candles, days, first_date, last_date, 1)
+    run_strategy(dataset, all_candles, data_splits, freq)
 
 '''
 Todo
@@ -598,5 +597,5 @@ Optimize load_data function
 Optimize volume profile function     OK
 Generate p&l graph function
 Fit and Test separated               OK
-Fit function on random data  In Sample Permutation Test: https://youtu.be/NLBXgSmRBgU?t=450
+In Sample Permutation Test
 '''

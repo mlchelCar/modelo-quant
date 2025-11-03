@@ -77,6 +77,9 @@ def load_raw_data(date, path="./data", max_files=None):
     print(f"Total: {len(result):,} rows")
     return result, count, date, last_date
 
+def permutate_candles():
+    raise NotImplementedError
+
 def make_candles(dataset, freq="25min", symbol=None, roll_schedule=None):
     print(f"\nMaking candles with freq={freq}...")
     df = dataset[["ts_event", "price", "size", "symbol"]].copy()
