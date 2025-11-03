@@ -457,7 +457,7 @@ class Variant():
 def run_strategy(dataset, all_candles, data_splits, freq):
     print(f"Running strategy on {len(data_splits)} splits.")
 
-    short_ma = 20
+    short_ma = 40
     long_ma = 50
 
     used_symbols = []
