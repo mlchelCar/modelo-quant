@@ -460,8 +460,8 @@ def run_strategy(l=None):
     v_data = []
 
     # === Split data (fit/test) ===
-    # data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
-    data_splits = [all_candles, all_candles]
+    data_splits = separate_data(all_candles, days, first_date, last_date, 0.5)
+    # data_splits = [all_candles, all_candles]
 
     dt = str(data_splits[0][-1].time)[:10]
 
@@ -578,25 +578,25 @@ if __name__ == "__main__":
 '''
 Todo
 
-Resolver situacao dos simbolos OK
-calcular Moving Average Crossings OK
-Calcular Volume Profile OK
-Plotar POC OK
-Add entry signals OK
-Fix decide_entry_direction OK
-Calculare result from each entrie OK
-Fix symbol with duplicate entries OK
-Fix sharpe calculation OK
-Add Costs OK
-Add Slippage OK
-Plot Entries stop and tp OK
-Fix POC step (0.0005) OK
+Resolver situacao dos simbolos       OK
+calcular Moving Average Crossings    OK
+Calcular Volume Profile              OK
+Plotar POC                           OK
+Add entry signals                    OK
+Fix decide_entry_direction           OK
+Calculare result from each entrie    OK
+Fix symbol with duplicate entries    OK
+Fix sharpe calculation               OK
+Add Costs                            OK
+Add Slippage                         OK
+Plot Entries stop and tp             OK
+Fix POC step (0.0005)                OK
 Compute sharpe using % daily returns
-Add Average Trade Duration
+Add Metric Average Trade Duration
 Control Trade Duration
 Optimize load_data function
-Optimize volume profile function OK
+Optimize volume profile function     OK
 Generate p&l graph function
-Fit and Test separated OK
+Fit and Test separated               OK
 Fit function on random data  In Sample Permutation Test: https://youtu.be/NLBXgSmRBgU?t=450
 '''
