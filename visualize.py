@@ -6,47 +6,69 @@ import numpy as np
 import sys
 from pandas import Timestamp
 from scipy.stats import bootstrap
+from numba import njit
+import pandas.api.types as ptypes
+
+@njit
+def _volume_profile_numba(prices, volumes, bin_edges):
+    n_bins = len(bin_edges) - 1
+    vol = np.zeros(n_bins, dtype=np.float64)
+    for i in range(len(prices)):
+        p = prices[i]
+        # np.histogram logic: bins are left-inclusive, right-exclusive (except last)
+        idx = np.searchsorted(bin_edges, p, side='right') - 1
+        if idx == n_bins:  # include right edge in last bin
+            idx = n_bins - 1
+        if 0 <= idx < n_bins:
+            vol[idx] += volumes[i]
+    return vol
+
 
 def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
     print(f"\nCalculating volume profile from {len(trades_df)} trades...")
     print(f"  A: {A}, B: {B}, symbol: {symbol}, bins: {bins}")
 
-    df = trades_df.copy()
+    df = trades_df
 
-    # Ensure consistent naming (depends on your dataset)
+    # === Safe datetime handling ===
     if "ts_event" in df.columns:
-        df["time"] = pd.to_datetime(df["ts_event"])
+        if not ptypes.is_datetime64_any_dtype(df["ts_event"]):
+            df["time"] = pd.to_datetime(df["ts_event"])
+        else:
+            df["time"] = df["ts_event"]
     elif "time" not in df.columns:
         raise ValueError("No valid time column found in trades_df")
 
-    # Remove timezone info (make tz-naive)
-    df["time"] = df["time"].dt.tz_localize(None)
+    # Make timezone-naive if needed
+    if getattr(df["time"].dt, "tz", None) is not None:
+        df["time"] = df["time"].dt.tz_localize(None)
 
-    # Convert A and B also to tz-naive Timestamps
+    # Convert A/B
     A = pd.Timestamp(A).tz_localize(None)
     B = pd.Timestamp(B).tz_localize(None)
 
-    # Filter by time range and optional symbol
+    # Filter early
     mask = (df["time"] >= A) & (df["time"] <= B)
-    if symbol:
+    if symbol is not None and "symbol" in df.columns:
         mask &= (df["symbol"] == symbol)
-    df = df.loc[mask]
+    df = df.loc[mask, ["price", "size"]]
 
     if df.empty:
         print("⚠️ No trades found in this range.")
         return None
 
-    # Use price and size (volume)
-    prices = df["price"].to_numpy()
-    volumes = df["size"].to_numpy()
+    prices = df["price"].to_numpy(np.float64)
+    volumes = df["size"].to_numpy(np.float64)
 
-    # Compute histogram (volume per price bin)
-    vol, bin_edges = np.histogram(prices, bins=bins, weights=volumes)
+    # Compute bins and aggregate
+    pmin, pmax = prices.min(), prices.max()
+    bin_edges = np.linspace(pmin, pmax, bins + 1)
+    vol = _volume_profile_numba(prices, volumes, bin_edges)
 
-    # Midpoints for plotting
     price_bins = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
-    return {"price_bins": price_bins,"volumes": vol, "A": A, "B": B, "symbol": symbol,}
+    return {"price_bins": price_bins, "volumes": vol, "A": A, "B": B, "symbol": symbol}
+
 
 def calculate_poc(vp, return_volume=False):
     """Return the price of the POC (and optionally the volume)."""
@@ -530,7 +552,7 @@ def run_strategy(l=None):
         volume_profiles=avolume_profiles,
         entries=aentries,
         sl=0.0002,
-        rrr=2
+        rrr=10
     )
 
     # === Print summary ===
@@ -573,7 +595,7 @@ Compute sharpe using % daily returns
 Add Average Trade Duration
 Control Trade Duration
 Optimize load_data function
-Optimize volume profile function
+Optimize volume profile function OK
 Generate p&l graph function
 Fit and Test separated OK
 Fit function on random data  In Sample Permutation Test: https://youtu.be/NLBXgSmRBgU?t=450
