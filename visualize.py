@@ -414,33 +414,80 @@ def calculate_expectancy(returns):
     return np.mean(returns)
 
 
-def compute_data(l, last_date):
+def compute_data(l, last_date, n):
     """
     Compute all key strategy metrics.
     """
+    t = len(l)
 
-    sharpe, annualized_sharpe, ci = calculate_sharpe(l)
-    winrate = calculate_winrate(l)
-    max_dd = calculate_max_drawdown(l)
-    profit_factor = calculate_profit_factor(l)
-    expectancy = calculate_expectancy(l)
+    # Group the list into n groups the first having t%n more elements
+    d = []
+    r = t % n
+    for i in range(n):
+        v = []
+        for j in range((t//n)+r):
+            v.append(l.pop(0))
+        r = 0
+        d.append(v)
+    
+    data = []
+    for i in range(len(d)-1):
+        l_fit = d[:i+1]
+        l_test = d[i+1:]
 
-    metrics = {
-        'Returns': l,
-        "Sharpe Ratio": round(sharpe, 3),
-        "Annualized Sharpe": round(annualized_sharpe, 3),
-        "Sharpe 95% CI": (round(ci[0], 3), round(ci[1], 3)),
-        "Win Rate (%)": round(winrate, 2),
-        "Max Drawdown": round(max_dd, 3),
-        "Profit Factor": round(profit_factor, 3),
-        "Expectancy": round(expectancy, 3),
-        "Total Trades": len(l)
-    }
+        l_fit = [item for sublist in l_fit for item in sublist]
+        l_test = [item for sublist in l_test for item in sublist]
+        data.append([l_fit, l_test])
+        
+    if n == 1: data = [ [d[0], []] ]
 
-    return metrics
+
+    results = []
+    for p in data:
+        r = []
+        for l in p:
+            if l == []: r.append({})
+            sharpe, annualized_sharpe, ci = calculate_sharpe(l)
+            winrate = calculate_winrate(l)
+            max_dd = calculate_max_drawdown(l)
+            profit_factor = calculate_profit_factor(l)
+            expectancy = calculate_expectancy(l)
+
+            r.append({
+                'Returns': l,
+                "Sharpe Ratio": round(sharpe, 3),
+                "Annualized Sharpe": round(annualized_sharpe, 3),
+                "Sharpe 95% CI": (round(ci[0], 3), round(ci[1], 3)),
+                "Win Rate (%)": round(winrate, 2),
+                "Max Drawdown": round(max_dd, 3),
+                "Profit Factor": round(profit_factor, 3),
+                "Expectancy": round(expectancy, 3),
+                "Total Trades": len(l)
+            })
+        results.append(r)
+
+    return results
+
+def print_results(results, number, best=1):
+    for i in range(number-1):
+        k = []
+        for variant in results:
+            k.append((variant, i ))
+
+        k = sorted(k, key=lambda x: x[0].metrics[x[1]][0].get("Sharpe Ratio", 0), reverse=True)[:best]
+
+        for j, v in enumerate(k):
+
+            print(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
+            for m in v[0].metrics[v[1]][0]:
+                print(f"{m}: {v[0].metrics[v[1]][0][m]}")
+
+            print(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
+            for m in v[0].metrics[v[1]][1]:
+                print(f"{m}: {v[0].metrics[v[1]][1][m]}")
 
 class Variant():
-    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, c=1):
+    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num, c=1):
         self.entries = entries
         self.candles = candles
         self.stop_losses = stop_losses
@@ -448,12 +495,12 @@ class Variant():
         
         self.name = n
         self.results = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
-        print(len(self.results))
-        quit()
-        self.metrics =  compute_data(self.results, last_date)
+        #print(len(self.results)) # 312 days, 26 per month
+        #quit()
+        self.metrics =  compute_data(self.results, last_date, num)
 
-def run_strategy(dataset, all_candles, data_splits, freq):
-    print(f"Running strategy on {len(data_splits)} splits.")
+def run_strategy(dataset, all_candles, freq, num):
+    print(f"Running strategy on {len(all_candles)} candles.")
 
     short_ma = 40
     long_ma = 50
@@ -461,121 +508,81 @@ def run_strategy(dataset, all_candles, data_splits, freq):
     used_symbols = []
     avolume_profiles = []
     aentries = []
-    v_data = []
 
-    if data_splits[1] == []:
-        data_splits = [data_splits[0]]
-
-    dt = str(data_splits[0][-1].time)[:10]
+    results = []
 
 
-    for split_index, candles in enumerate(data_splits):
-        print(f"\n🔹 Processing split {split_index+1}/{len(data_splits)} "
-              f"({candles[0].time} → {candles[-1].time})")
 
-        results = []
-        ma_dict = calculate_moving_averages(candles, periods=(short_ma, long_ma))
-        cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
+    dt = str(all_candles[-1].time)[:10]
 
-        # === Build Volume Profiles between crossovers ===
-        volume_profiles = []
-        all_crosses = sorted(
-            [(i, "up") for i in cross_up] + [(i, "down") for i in cross_down],
-            key=lambda x: x[0]
-        )
 
-        for i in range(len(all_crosses) - 1):
-            idx_a, _ = all_crosses[i]
-            idx_b, _ = all_crosses[i + 1]
+    ma_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
+    cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
 
-            A = pd.Timestamp(candles[idx_a].time).tz_localize(None)
-            B = pd.Timestamp(candles[idx_b].time).tz_localize(None)
+    # === Build Volume Profiles between crossovers ===
+    volume_profiles = []
+    all_crosses = sorted(
+        [(i, "up") for i in cross_up] + [(i, "down") for i in cross_down],
+        key=lambda x: x[0]
+    )
 
-            if candles[idx_a].symbol != candles[idx_b].symbol:
-                continue
+    for i in range(len(all_crosses) - 1):
+        idx_a, _ = all_crosses[i]
+        idx_b, _ = all_crosses[i + 1]
 
-            vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=candles[idx_a].symbol, bins=160)
-            if vp is None:
-                continue
+        A = pd.Timestamp(all_candles[idx_a].time).tz_localize(None)
+        B = pd.Timestamp(all_candles[idx_b].time).tz_localize(None)
 
-            poc = calculate_poc(vp)
-            volume_profiles.append({"A": A, "B": B, "poc": poc})
-            avolume_profiles.append({"A": A, "B": B, "poc": poc})
-
-        entries = detect_entries(candles, volume_profiles)
-        print(f"🔸 Found {len(entries)} entries in this split.")
-
-        used_symbols.append(s)
-        aentries.extend(entries)
-
-        if not entries:
-            print("⚠️ No entries detected, skipping Variant creation for this split.")
-            v_data.append([])  # keep structure consistent
+        if all_candles[idx_a].symbol != all_candles[idx_b].symbol:
             continue
 
-        # === Create Variants ===
-        for stop in [10, 20]:
-            contracts = 1
-            if stop == 10: contracts = 2
+        vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=all_candles[idx_a].symbol, bins=160)
+        if vp is None:
+            continue
 
-            for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20]:
-                name = f"{stop}_{r}"
-                stop_losses = [stop / 100000] * len(entries)
-                rrratios = [r] * len(entries)
-                
+        poc = calculate_poc(vp)
+        volume_profiles.append({"A": A, "B": B, "poc": poc})
+        avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
-                if split_index: dt = last_date
+    entries = detect_entries(all_candles, volume_profiles)
+    print(f"🔸 Found {len(entries)} entries in this split.")
 
-                try:
-                    variant = Variant(entries, candles, stop_losses, rrratios, dt, name, c=contracts)
-                    if variant.metrics:  # only keep if metrics exist
-                        results.append(variant)
-                except Exception as e:
-                    print(f"⚠️ Error creating Variant {name}: {e}")
+    used_symbols.append(s)
+    aentries.extend(entries)
 
-        v_data.append(results)
+    # === Create Variants ===
+    for stop in [10, 20]:
+        contracts = 1
+        if stop == 10: contracts = 2
 
-    # === Handle empty splits ===
-    if not any(v_data):
-        print("❌ No data splits produced valid variants.")
-        return
-
-    # === Rank and visualize ===
-    fit_data = sorted(v_data[0], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[0] else []
+        for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20]:
+            name = f"{stop}_{r}"
+            stop_losses = [stop / 100000] * len(entries)
+            rrratios = [r] * len(entries)
+            
+            try:
+                variant = Variant(entries, all_candles, stop_losses, rrratios, dt, name, num, c=contracts)
+                results.append(variant)
+            except Exception as e:
+                print(f"⚠️ Error creating Variant {name}: {e}")
 
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
 
-    visualize_candles(
-        all_candles,
-        t=f"6E {freq} Candlestick Chart",
-        moving_averages=ama_dict,
-        cross_up=across_up,
-        cross_down=across_down,
-        volume_profiles=avolume_profiles,
-        entries=aentries,
-        sl=0.0002,
-        rrr=10
-    )
+    # visualize_candles(
+    #     all_candles,
+    #     t=f"6E {freq} Candlestick Chart",
+    #     moving_averages=ama_dict,
+    #     cross_up=across_up,
+    #     cross_down=across_down,
+    #     volume_profiles=avolume_profiles,
+    #     entries=aentries,
+    #     sl=0.0002,
+    #     rrr=10
+    # )
 
-    # === Print summary ===
-    if fit_data:
-        for i, v in enumerate(fit_data):
-            print(f"\n✅ Fit Variant {i+1}: {v.name}")
-            for m in v.metrics:
-                print(f"{m}: {v.metrics[m]}")
-    else:
-        print("⚠️ No fit data available.")
+    print_results(results, num)
 
-    if len(v_data) > 1:
-        test_data = sorted(v_data[1], key=lambda x: x.metrics.get("Sharpe Ratio", 0), reverse=True)[:] if v_data[1] else []
-        if test_data:
-            for i, v in enumerate(test_data):
-                print(f"\n🧩 Test Variant {i+1}: {v.name}")
-                for m in v.metrics:
-                    print(f"{m}: {v.metrics[m]}")
-        else:
-            print("⚠️ No test data available.")
 
 if __name__ == "__main__":
 
@@ -603,8 +610,7 @@ if __name__ == "__main__":
             all_candles.append(t)
 
     # === Split data (fit/test) ===
-    data_splits = separate_data(all_candles, days, first_date, last_date, 1)
-    run_strategy(dataset, all_candles, data_splits, freq)
+    run_strategy(dataset, all_candles, freq, 12)
 
 '''
 Todo
