@@ -468,7 +468,7 @@ def compute_data(l, last_date, n):
 
     return results
 
-def print_results(results, number, best=1):
+def print_results(results, number, best=5):
     for i in range(number-1):
         k = []
         for variant in results:
