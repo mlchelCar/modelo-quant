@@ -569,17 +569,17 @@ def run_strategy(dataset, all_candles, freq, num):
     ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
 
-    # visualize_candles(
-    #     all_candles,
-    #     t=f"6E {freq} Candlestick Chart",
-    #     moving_averages=ama_dict,
-    #     cross_up=across_up,
-    #     cross_down=across_down,
-    #     volume_profiles=avolume_profiles,
-    #     entries=aentries,
-    #     sl=0.0002,
-    #     rrr=10
-    # )
+    visualize_candles(
+        all_candles,
+        t=f"6E {freq} Candlestick Chart",
+        moving_averages=ama_dict,
+        cross_up=across_up,
+        cross_down=across_down,
+        volume_profiles=avolume_profiles,
+        entries=aentries,
+        sl=0.0002,
+        rrr=10
+    )
 
     print_results(results, num)
 
@@ -610,7 +610,7 @@ if __name__ == "__main__":
             all_candles.append(t)
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, freq, 12)
+    run_strategy(dataset, all_candles, freq, 2)
 
 '''
 Todo
@@ -628,6 +628,7 @@ Add Costs                            OK
 Add Slippage                         OK
 Plot Entries stop and tp             OK
 Fix POC step (0.0005)                OK
+Fix moving Average  Mistake
 Compute sharpe using % daily returns
 Add Metric Average Trade Duration
 Control Trade Duration               OK
@@ -635,5 +636,6 @@ Optimize load_data function
 Optimize volume profile function     OK
 Generate p&l graph function
 Fit and Test separated               OK
+Fit and Test Fitting and Testing     OK
 In Sample Permutation Test
 '''
