@@ -8,6 +8,7 @@ from pandas import Timestamp
 from scipy.stats import bootstrap
 from numba import njit
 import pandas.api.types as ptypes
+from collections import defaultdict
 
 @njit
 def _volume_profile_numba(prices, volumes, bin_edges):
@@ -505,7 +506,6 @@ def run_strategy(dataset, all_candles, freq, num):
     short_ma = 40
     long_ma = 50
 
-    used_symbols = []
     avolume_profiles = []
     aentries = []
 
@@ -516,8 +516,65 @@ def run_strategy(dataset, all_candles, freq, num):
     dt = str(all_candles[-1].time)[:10]
 
 
+
+
+
+
+
     ma_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
     cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
+
+
+    # === START: Fix for MA Crossover Signals ===
+    # The 'ma_dict', 'cross_up', and 'cross_down' variables above are CORRUPTED
+    # by roll gaps. 'ma_dict' is kept *only* so the visualize_candles()
+    # plot doesn't break.
+    # We now OVERWRITE 'cross_up' and 'cross_down' with the CORRECT signals
+    # before they are used by the strategy.
+    
+    print("Recalculating crossovers per-symbol to fix roll gaps...")
+    
+    # 1. Map: candle's memory ID -> its global index in 'all_candles'
+    global_index_map = {id(c): i for i, c in enumerate(all_candles)}
+
+    # 2. Group all candles by their symbol
+    symbol_candle_groups = defaultdict(list)
+    for c in all_candles:
+        symbol_candle_groups[c.symbol].append(c)
+        
+    # We will re-build these lists from scratch
+    correct_cross_up = []
+    correct_cross_down = []
+    
+    # 3. Loop over each symbol's group
+    for symbol, sym_candles in symbol_candle_groups.items():
+        if len(sym_candles) < long_ma:
+            continue
+            
+        # 4. Calculate MAs *only* for this single symbol's candles
+        ma_dict_local = calculate_moving_averages(sym_candles, periods=(short_ma, long_ma))
+        
+        # 5. Find crossovers. These are *local* indices
+        local_cross_up, local_cross_down = detect_ma_crossovers(ma_dict_local[short_ma], ma_dict_local[long_ma])
+
+        # 6. Translate local indices back to global and add to correct lists
+        for local_idx in local_cross_up:
+            correct_cross_up.append(global_index_map[id(sym_candles[local_idx])])
+            
+        for local_idx in local_cross_down:
+            correct_cross_down.append(global_index_map[id(sym_candles[local_idx])])
+
+    # 7. OVERWRITE the old, incorrect lists with the new, correct ones.
+    #    The 'all_crosses' list below will now be built from valid signals.
+    cross_up = sorted(correct_cross_up)
+    cross_down = sorted(correct_cross_down)
+
+    print(f"Found {len(cross_up)} valid cross-ups and {len(cross_down)} valid cross-downs.")
+    # === END: Fix for MA Crossover Signals ===
+
+
+
+
 
     # === Build Volume Profiles between crossovers ===
     volume_profiles = []
@@ -547,7 +604,6 @@ def run_strategy(dataset, all_candles, freq, num):
     entries = detect_entries(all_candles, volume_profiles)
     print(f"🔸 Found {len(entries)} entries in this split.")
 
-    used_symbols.append(s)
     aentries.extend(entries)
 
     # === Create Variants ===
@@ -566,15 +622,12 @@ def run_strategy(dataset, all_candles, freq, num):
             except Exception as e:
                 print(f"⚠️ Error creating Variant {name}: {e}")
 
-    ama_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
-    across_up, across_down = detect_ma_crossovers(ama_dict[short_ma], ama_dict[long_ma])
-
     visualize_candles(
         all_candles,
         t=f"6E {freq} Candlestick Chart",
-        moving_averages=ama_dict,
-        cross_up=across_up,
-        cross_down=across_down,
+        moving_averages=ma_dict,
+        cross_up=cross_up,
+        cross_down=cross_down,
         volume_profiles=avolume_profiles,
         entries=aentries,
         sl=0.0002,
@@ -610,7 +663,7 @@ if __name__ == "__main__":
             all_candles.append(t)
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, freq, 2)
+    run_strategy(dataset, all_candles, freq, 12)
 
 '''
 Todo
@@ -628,7 +681,8 @@ Add Costs                            OK
 Add Slippage                         OK
 Plot Entries stop and tp             OK
 Fix POC step (0.0005)                OK
-Fix moving Average  Mistake
+Fix moving Average  Mistake          OK
+Make Moving Average Fix Clean
 Compute sharpe using % daily returns
 Add Metric Average Trade Duration
 Control Trade Duration               OK
