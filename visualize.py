@@ -171,7 +171,7 @@ def detect_entries(candles, volume_profiles):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, costs=7, contracts=1, slipage_on_losses=12.5):
+def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win_size=125, costs=7, contracts=1, slipage_on_losses=12.5):
     results = []
 
     for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
@@ -258,7 +258,33 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  win_size=125, 
 
         results.append((entry_time, result))
 
-    return results
+    # Ensure trade_list is sorted chronologically
+    trade_list = sorted(results, key=lambda x: x[0])
+
+    # Create list of all weekdays between first_date and last_date (exclude Saturdays)
+    first_date = trade_list[0][0].normalize()
+    last_date = pd.to_datetime(str(last_date), format="mixed", dayfirst=False)
+    days = pd.date_range(start=first_date, end=last_date, freq="D")
+    
+    days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
+
+    # Initialize dictionary to store daily returns
+    daily_returns = {day.date(): 0 for day in days}
+
+    # Group trades by day and sum results
+    trade_dict = {}
+    for trade in trade_list:
+        day = trade[0].date()
+        trade_dict[day] = trade_dict.get(day, 0) + trade[1]
+
+    # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
+    for day in daily_returns:
+        daily_returns[day] = trade_dict.get(day, 0)
+
+    l = [i for i in daily_returns.values()]
+    l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns
+
+    return l
 
 def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
@@ -388,41 +414,10 @@ def calculate_expectancy(returns):
     return np.mean(returns)
 
 
-def compute_data(trade_list, last_date):
+def compute_data(l, last_date):
     """
     Compute all key strategy metrics.
     """
-    # trade_list = [(Timestamp('2024-10-24 06:25:00'), -1), (Timestamp('2024-10-28 12:05:00'), -1), (Timestamp('2024-10-29 11:50:00'), -1), (Timestamp('2024-10-29 08:05:00'), -1), (Timestamp('2024-10-29 10:10:00'), -1), (Timestamp('2024-10-29 20:10:00'), -1), (Timestamp('2024-11-06 02:20:00'), -1), (Timestamp('2024-11-01 11:55:00'), -1), (Timestamp('2024-11-01 13:35:00'), -1), (Timestamp('2024-11-03 22:40:00'), -1), (Timestamp('2024-11-06 00:40:00'), -1), (Timestamp('2024-11-05 10:55:00'), -1), (Timestamp('2024-11-06 00:15:00'), -1), (Timestamp('2024-11-08 16:00:00'), -1), (Timestamp('2024-11-08 11:00:00'), -1), (Timestamp('2024-11-08 12:15:00'), -1), (Timestamp('2024-11-13 13:55:00'), -1), (Timestamp('2024-11-15 08:25:00'), -1), (Timestamp('2024-11-15 19:40:00'), -1), (Timestamp('2024-11-15 18:00:00'), -1), (Timestamp('2024-11-15 17:35:00'), 3), (Timestamp('2024-11-18 10:10:00'), -1), (Timestamp('2024-11-19 12:25:00'), -1), (Timestamp('2024-11-19 16:10:00'), -1), (Timestamp('2024-11-29 07:25:00'), 3), (Timestamp('2024-11-25 01:20:00'), -1), (Timestamp('2024-11-26 04:00:00'), 3), (Timestamp('2024-11-26 15:40:00'), -1), (Timestamp('2024-11-27 07:30:00'), -1), (Timestamp('2024-12-02 14:35:00'), -1), (Timestamp('2024-11-29 00:20:00'), -1), (Timestamp('2024-12-01 23:10:00'), 3), (Timestamp('2024-11-29 14:55:00'), -1), (Timestamp('2024-12-01 22:45:00'), -1), (Timestamp('2024-12-05 13:50:00'), -1), (Timestamp('2024-12-04 03:15:00'), 3), (Timestamp('2024-12-04 05:20:00'), 3), (Timestamp('2024-12-04 08:15:00'), -1), (Timestamp('2024-12-04 11:35:00'), 3), (Timestamp('2024-12-11 07:20:00'), -1), (Timestamp('2024-12-09 09:55:00'), 3), (Timestamp('2024-12-09 12:00:00'), -1), (Timestamp('2024-12-12 08:20:00'), -1), (Timestamp('2024-12-12 14:35:00'), -1), (Timestamp('2024-12-13 14:45:00'), 3), (Timestamp('2024-12-16 15:35:00'), 3), (Timestamp('2024-12-16 20:10:00'), -1), (Timestamp('2024-12-17 14:05:00'), 3), (Timestamp('2024-12-18 05:55:00'), 3), (Timestamp('2024-12-18 09:40:00'), 3), (Timestamp('2024-12-20 13:20:00'), -1), (Timestamp('2024-12-27 12:00:00'), 3), (Timestamp('2024-12-26 06:50:00'), -1), (Timestamp('2024-12-26 07:40:00'), 3), (Timestamp('2024-12-26 11:50:00'), -1), (Timestamp('2024-12-26 12:40:00'), -1), (Timestamp('2024-12-30 13:45:00'), -1), (Timestamp('2024-12-26 14:45:00'), -1), (Timestamp('2024-12-30 13:45:00'), -1), (Timestamp('2024-12-30 09:35:00'), -1), (Timestamp('2024-12-30 13:45:00'), -1), (Timestamp('2025-01-24 06:15:00'), -1), (Timestamp('2025-01-06 08:40:00'), -1), (Timestamp('2025-01-03 16:30:00'), -1), (Timestamp('2025-01-08 11:30:00'), 3), (Timestamp('2025-01-20 13:30:00'), -1), (Timestamp('2025-01-10 13:30:00'), -1), (Timestamp('2025-01-14 20:00:00'), -1), (Timestamp('2025-01-14 01:40:00'), -1), (Timestamp('2025-01-16 15:20:00'), -1), (Timestamp('2025-01-16 17:50:00'), -1), (Timestamp('2025-01-17 08:50:00'), 3), (Timestamp('2025-01-17 10:55:00'), 3), (Timestamp('2025-01-17 14:40:00'), -1), (Timestamp('2025-01-17 20:55:00'), -1), (Timestamp('2025-01-20 03:30:00'), -1), (Timestamp('2025-02-03 15:00:00'), 3), (Timestamp('2025-01-21 15:20:00'), -1), (Timestamp('2025-01-31 21:10:00'), 3), (Timestamp('2025-01-23 10:15:00'), 3), (Timestamp('2025-01-29 08:45:00'), 3), (Timestamp('2025-01-27 08:50:00'), -1), (Timestamp('2025-01-27 23:00:00'), -1), (Timestamp('2025-02-14 13:30:00'), 3), (Timestamp('2025-01-30 03:05:00'), 3), (Timestamp('2025-01-30 07:40:00'), 3), (Timestamp('2025-01-30 20:35:00'), -1), (Timestamp('2025-01-31 17:00:00'), -1), (Timestamp('2025-01-31 18:15:00'), -1), (Timestamp('2025-02-05 10:20:00'), -1), (Timestamp('2025-02-06 07:35:00'), -1), (Timestamp('2025-02-07 13:10:00'), -1), (Timestamp('2025-02-07 01:30:00'), -1), (Timestamp('2025-02-07 03:35:00'), 3), (Timestamp('2025-02-07 07:20:00'), -1), (Timestamp('2025-02-07 09:50:00'), -1), (Timestamp('2025-02-07 13:10:00'), 3), (Timestamp('2025-02-12 13:10:00'), 3), (Timestamp('2025-02-28 02:05:00'), 3), (Timestamp('2025-02-20 14:30:00'), 3), (Timestamp('2025-02-21 13:25:00'), -1), (Timestamp('2025-02-24 14:45:00'), 3), (Timestamp('2025-02-24 16:50:00'), -1), (Timestamp('2025-02-27 02:45:00'), -1), (Timestamp('2025-02-26 15:30:00'), -1), (Timestamp('2025-02-26 17:35:00'), 3), (Timestamp('2025-03-04 08:10:00'), -1), (Timestamp('2025-03-03 06:45:00'), -1), (Timestamp('2025-03-10 10:50:00'), -1), (Timestamp('2025-03-10 17:30:00'), 3), (Timestamp('2025-03-11 05:35:00'), 3), (Timestamp('2025-03-12 15:20:00'), -1), (Timestamp('2025-03-12 18:15:00'), -1), (Timestamp('2025-03-17 08:05:00'), -1), (Timestamp('2025-03-17 09:20:00'), -1), (Timestamp('2025-04-03 05:05:00'), -1), (Timestamp('2025-03-24 12:10:00'), -1), (Timestamp('2025-03-31 02:30:00'), 3), (Timestamp('2025-03-25 15:40:00'), 3), (Timestamp('2025-03-27 15:10:00'), -1), (Timestamp('2025-03-27 11:25:00'), -1), (Timestamp('2025-03-28 12:50:00'), -1), (Timestamp('2025-04-01 00:35:00'), 3), (Timestamp('2025-04-01 06:00:00'), -1), (Timestamp('2025-04-01 08:55:00'), 3), (Timestamp('2025-04-02 12:50:00'), -1), (Timestamp('2025-04-04 12:20:00'), -1), (Timestamp('2025-04-09 04:25:00'), -1), (Timestamp('2025-04-08 07:35:00'), -1), (Timestamp('2025-04-08 19:15:00'), 3), (Timestamp('2025-04-09 17:45:00'), -1), (Timestamp('2025-04-10 08:20:00'), -1), (Timestamp('2025-04-14 17:45:00'), -1), (Timestamp('2025-04-22 22:25:00'), 3), (Timestamp('2025-04-17 07:25:00'), -1), (Timestamp('2025-04-17 09:55:00'), -1), (Timestamp('2025-04-17 12:50:00'), 3), (Timestamp('2025-04-22 22:00:00'), -1), (Timestamp('2025-04-22 11:35:00'), 3), (Timestamp('2025-04-24 15:15:00'), -1), (Timestamp('2025-04-25 14:35:00'), 3), (Timestamp('2025-04-25 19:35:00'), -1), (Timestamp('2025-04-28 04:40:00'), -1), (Timestamp('2025-04-28 06:20:00'), -1), (Timestamp('2025-04-28 12:10:00'), -1), (Timestamp('2025-04-30 01:40:00'), 3), (Timestamp('2025-04-29 10:40:00'), -1), (Timestamp('2025-04-29 14:50:00'), 3), (Timestamp('2025-04-30 06:40:00'), 3), (Timestamp('2025-05-02 13:40:00'), -1), (Timestamp('2025-05-05 00:50:00'), -1), (Timestamp('2025-05-05 15:50:00'), -1), (Timestamp('2025-05-06 07:15:00'), -1), (Timestamp('2025-05-07 19:30:00'), -1), (Timestamp('2025-05-21 10:10:00'), -1), (Timestamp('2025-05-11 21:50:00'), -1), (Timestamp('2025-05-19 09:00:00'), -1), (Timestamp('2025-05-15 00:25:00'), -1), (Timestamp('2025-05-15 07:30:00'), 3), (Timestamp('2025-05-16 00:35:00'), 3), (Timestamp('2025-05-16 13:55:00'), -1), (Timestamp('2025-05-19 06:05:00'), -1), (Timestamp('2025-05-22 17:00:00'), -1), (Timestamp('2025-05-28 05:05:00'), -1), (Timestamp('2025-05-27 07:50:00'), 3), (Timestamp('2025-05-30 12:05:00'), -1), (Timestamp('2025-05-30 16:15:00'), 3), (Timestamp('2025-06-04 13:45:00'), -1), (Timestamp('2025-06-06 12:25:00'), 3), (Timestamp('2025-06-06 07:50:00'), -1), (Timestamp('2025-06-09 12:30:00'), -1), (Timestamp('2025-06-09 15:00:00'), -1), (Timestamp('2025-06-10 01:50:00'), -1), (Timestamp('2025-06-10 11:00:00'), -1), (Timestamp('2025-06-10 15:10:00'), -1), (Timestamp('2025-06-11 05:45:00'), 3), (Timestamp('2025-06-11 12:25:00'), 3), (Timestamp('2025-06-13 19:50:00'), 3), (Timestamp('2025-06-15 22:55:00'), 3), (Timestamp('2025-06-16 04:45:00'), -1), (Timestamp('2025-06-17 14:30:00'), -1), (Timestamp('2025-06-23 21:45:00'), -1), (Timestamp('2025-06-17 12:25:00'), -1), (Timestamp('2025-06-23 18:00:00'), -1), (Timestamp('2025-06-19 23:10:00'), -1), (Timestamp('2025-06-23 05:55:00'), 3), (Timestamp('2025-07-30 12:30:00'), -1), (Timestamp('2025-06-25 10:00:00'), -1), (Timestamp('2025-07-15 14:10:00'), -1), (Timestamp('2025-06-27 06:35:00'), -1), (Timestamp('2025-06-27 17:50:00'), -1), (Timestamp('2025-07-03 12:10:00'), 3), (Timestamp('2025-07-03 12:10:00'), -1), (Timestamp('2025-07-07 06:10:00'), -1), (Timestamp('2025-07-08 10:05:00'), -1), (Timestamp('2025-07-22 16:10:00'), 3), (Timestamp('2025-07-10 11:40:00'), -1), (Timestamp('2025-07-22 15:20:00'), -1), (Timestamp('2025-07-14 12:20:00'), -1), (Timestamp('2025-07-14 14:00:00'), -1), (Timestamp('2025-07-14 14:50:00'), 3), (Timestamp('2025-07-15 05:25:00'), -1), (Timestamp('2025-07-15 11:15:00'), -1), (Timestamp('2025-07-15 07:05:00'), -1), (Timestamp('2025-07-15 10:00:00'), -1), (Timestamp('2025-07-15 12:30:00'), 3), (Timestamp('2025-07-15 12:55:00'), -1), (Timestamp('2025-07-16 15:10:00'), -1), (Timestamp('2025-07-17 00:20:00'), -1), (Timestamp('2025-07-18 08:00:00'), -1), (Timestamp('2025-07-28 17:10:00'), -1), (Timestamp('2025-07-21 00:35:00'), -1), (Timestamp('2025-07-21 00:10:00'), -1), (Timestamp('2025-07-21 04:45:00'), -1), (Timestamp('2025-07-28 13:25:00'), -1), (Timestamp('2025-07-28 07:10:00'), -1), (Timestamp('2025-07-24 20:15:00'), -1), (Timestamp('2025-07-27 22:00:00'), 3), (Timestamp('2025-07-28 06:20:00'), -1), (Timestamp('2025-08-05 06:25:00'), 3), (Timestamp('2025-08-07 15:05:00'), -1), (Timestamp('2025-08-08 05:40:00'), 3), (Timestamp('2025-08-08 14:00:00'), -1), (Timestamp('2025-08-08 18:35:00'), -1), (Timestamp('2025-08-11 01:35:00'), -1), (Timestamp('2025-08-11 09:05:00'), -1), (Timestamp('2025-08-12 12:10:00'), -1), (Timestamp('2025-08-21 14:30:00'), -1), (Timestamp('2025-08-22 14:40:00'), -1), (Timestamp('2025-08-18 14:25:00'), -1), (Timestamp('2025-08-22 14:40:00'), -1), (Timestamp('2025-08-19 12:30:00'), -1), (Timestamp('2025-08-22 13:50:00'), -1), (Timestamp('2025-08-20 23:55:00'), -1), (Timestamp('2025-08-22 13:50:00'), -1), (Timestamp('2025-08-25 18:55:00'), -1), (Timestamp('2025-09-01 05:55:00'), -1), (Timestamp('2025-08-26 15:20:00'), -1), (Timestamp('2025-08-28 10:15:00'), -1), (Timestamp('2025-08-29 13:20:00'), -1), (Timestamp('2025-09-02 07:45:00'), -1), (Timestamp('2025-09-02 06:05:00'), -1), (Timestamp('2025-09-04 04:45:00'), 3), (Timestamp('2025-09-05 08:15:00'), -1), (Timestamp('2025-09-09 13:55:00'), -1), (Timestamp('2025-09-11 14:40:00'), 3), (Timestamp('2025-09-12 16:55:00'), -1), (Timestamp('2025-09-15 04:20:00'), 3), (Timestamp('2025-09-19 12:05:00'), 3), (Timestamp('2025-09-24 09:35:00'), -1), (Timestamp('2025-10-06 07:25:00'), -1), (Timestamp('2025-10-01 04:05:00'), -1), (Timestamp('2025-10-01 09:30:00'), -1), (Timestamp('2025-10-01 12:00:00'), -1), (Timestamp('2025-10-01 14:05:00'), -1), (Timestamp('2025-10-02 06:45:00'), 3), (Timestamp('2025-10-02 12:35:00'), -1), (Timestamp('2025-10-03 14:00:00'), 3), (Timestamp('2025-10-05 21:50:00'), -1), (Timestamp('2025-10-06 19:55:00'), -1), (Timestamp('2025-10-17 05:30:00'), -1), (Timestamp('2025-10-09 05:50:00'), -1), (Timestamp('2025-10-15 15:35:00'), 3), (Timestamp('2025-10-13 11:30:00'), -1), (Timestamp('2025-10-14 16:15:00'), -1), (Timestamp('2025-10-21 05:20:00'), -1), (Timestamp('2025-10-22 18:25:00'), -1)]
-
-    # Ensure trade_list is sorted chronologically
-
-    trade_list = sorted(trade_list, key=lambda x: x[0])
-    # print(trade_list)
-    # print(trade_list[0][0].normalize())
-    # quit()
-
-    # Create list of all weekdays between first_date and last_date (exclude Saturdays)
-    first_date = trade_list[0][0].normalize()
-    last_date = pd.to_datetime(str(last_date), format="mixed", dayfirst=False)
-    days = pd.date_range(start=first_date, end=last_date, freq="D")
-    
-    days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
-
-    # Initialize dictionary to store daily returns
-    daily_returns = {day.date(): 0 for day in days}
-
-    # Group trades by day and sum results
-    trade_dict = {}
-    for trade in trade_list:
-        day = trade[0].date()
-        trade_dict[day] = trade_dict.get(day, 0) + trade[1]
-
-    # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
-    for day in daily_returns:
-        daily_returns[day] = trade_dict.get(day, 0)
-
-    l = [i for i in daily_returns.values()]
-    l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns    
 
     sharpe, annualized_sharpe, ci = calculate_sharpe(l)
     winrate = calculate_winrate(l)
@@ -452,7 +447,10 @@ class Variant():
         self.rrratios = rrratios
         
         self.name = n
-        self.metrics =  compute_data(result_from_entries(entries, candles, stop_losses, rrratios, contracts=c), last_date)
+        self.results = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
+        print(len(self.results))
+        quit()
+        self.metrics =  compute_data(self.results, last_date)
 
 def run_strategy(dataset, all_candles, data_splits, freq):
     print(f"Running strategy on {len(data_splits)} splits.")
