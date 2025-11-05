@@ -83,6 +83,72 @@ def calculate_poc(vp, return_volume=False):
 
     return (poc_price, poc_volume) if return_volume else poc_price
 
+def calculate_per_symbol_ma(all_candles, short_ma, long_ma):
+    """
+    Calculates MAs and Crossovers correctly, respecting symbol boundaries
+    to avoid roll gap corruption.
+    
+    This function performs a "split-apply-combine" operation:
+    1. SPLIT: Groups all candles by their symbol.
+    2. APPLY: Calculates MAs and crossovers for each symbol independently.
+    3. COMBINE: Maps the local results back to their global indices.
+    
+    Returns:
+        (dict): The correct, globally-mapped ma_dict.
+        (list): The correct, sorted list of global cross_up indices.
+        (list): The correct, sorted list of global cross_down indices.
+    """
+    periods = (short_ma, long_ma)
+    
+    # 1. Map: candle's memory ID -> its global index in 'all_candles'
+    global_index_map = {id(c): i for i, c in enumerate(all_candles)}
+
+    # 2. (SPLIT) Group all candles by their symbol
+    symbol_candle_groups = defaultdict(list)
+    for c in all_candles:
+        symbol_candle_groups[c.symbol].append(c)
+        
+    # 3. Initialize collectors for combined, global data
+    correct_cross_up = []
+    correct_cross_down = []
+    correct_ma_dict = {
+        period: [None] * len(all_candles) for period in periods
+    }
+    
+    # 4. (APPLY) Loop over each symbol's group
+    for symbol, sym_candles in symbol_candle_groups.items():
+        # Need enough candles for the *longest* MA
+        if len(sym_candles) < long_ma: 
+            continue
+            
+        # Calculate MAs *only* for this single symbol's candles
+        ma_dict_local = calculate_moving_averages(sym_candles, periods=periods)
+        
+        # Find crossovers. These are *local* indices
+        local_cross_up, local_cross_down = detect_ma_crossovers(
+            ma_dict_local[short_ma], ma_dict_local[long_ma]
+        )
+
+        # 5. (COMBINE) Map local results back to global lists
+        
+        # Map crossover indices
+        for local_idx in local_cross_up:
+            correct_cross_up.append(global_index_map[id(sym_candles[local_idx])])
+            
+        for local_idx in local_cross_down:
+            correct_cross_down.append(global_index_map[id(sym_candles[local_idx])])
+
+        # Map MA values
+        for period in periods:
+            local_ma_list = ma_dict_local[period]
+            
+            for local_idx, candle_obj in enumerate(sym_candles):
+                global_idx = global_index_map[id(candle_obj)]
+                correct_ma_dict[period][global_idx] = local_ma_list[local_idx]
+
+    # 6. Return the combined, correct results
+    return correct_ma_dict, sorted(correct_cross_up), sorted(correct_cross_down)
+
 def calculate_moving_averages(candles, periods=(25, 100), ema=True):
     """Return a dict of moving averages (EMA or SMA) keyed by period."""
     df = pd.DataFrame({
@@ -339,46 +405,73 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     fig.show()
 
-def calculate_sharpe(returns, risk_free_rate=0.0, trading_days=252):
+def _calculate_daily_sharpe(excess_returns):
+    """Helper function to calculate Sharpe for a bootstrap sample."""
+    # ddof=1 for sample standard deviation
+    std_dev = np.std(excess_returns, ddof=1) 
+    
+    if std_dev == 0:
+        # Handle cases with zero volatility in a resample (return 0 or np.nan)
+        return 0.0
+        
+    return np.mean(excess_returns) / std_dev
+
+def calculate_sharpe(returns, annual_risk_free_rate=0.0, trading_days=252):
     """
     Calculate daily and annualized Sharpe ratio and 95% bootstrap CI.
+    
+    Parameters:
+    - returns: array-like of daily returns.
+    - annual_risk_free_rate: The *annual* risk-free rate (e.g., 0.05 for 5%).
+    - trading_days: Number of trading days in a year (e.g., 252).
     """
     returns = np.array(returns, dtype=float)
-    if len(returns) == 0:
-        return 0.0, 0.0, (0.0, 0.0)
+    if len(returns) < 2: # Need at least 2 returns to calculate std dev
+        return 0.0, 0.0, (np.nan, np.nan)
 
-    # Excess returns
-    excess = returns - risk_free_rate
+    # Convert annual RF rate to daily RF rate
+    daily_risk_free_rate = annual_risk_free_rate / trading_days
+    
+    # 1. Calculate Excess Returns
+    excess = returns - daily_risk_free_rate
 
-    mean_return = np.mean(excess)
-    std_return = np.std(excess, ddof=1)
+    # 2. Calculate Point Estimates (Daily and Annualized Sharpe)
+    mean_excess = np.mean(excess)
+    std_excess = np.std(excess, ddof=1)
 
-    if std_return == 0:
+    if std_excess == 0:
+        # Handle case of zero volatility in the main sample
         sharpe = 0.0
+        annualized_sharpe = 0.0
     else:
-        sharpe = mean_return / std_return
+        sharpe = mean_excess / std_excess
+        annualized_sharpe = sharpe * np.sqrt(trading_days)
 
-    annualized_sharpe = sharpe * np.sqrt(trading_days)
-
-    # Bootstrap 95% confidence interval
+    # 3. Bootstrap 95% confidence interval for the *daily* Sharpe
     try:
+        # Pass the 'excess' returns as the data
+        # Pass our helper function as the statistic to bootstrap
         res = bootstrap(
             (excess,),
-            np.mean,
+            _calculate_daily_sharpe,  # <-- This is the crucial change
             confidence_level=0.95,
             random_state=42,
             n_resamples=5000,
-            method="percentile"
-        )
-        ci_low, ci_high = res.confidence_interval.low, res.confidence_interval.high
-        # Convert to Sharpe scale
-        ci_low = (ci_low / std_return) * np.sqrt(trading_days)
-        ci_high = (ci_high / std_return) * np.sqrt(trading_days)
+            method="percentile" )
+        
+        # The result 'res.confidence_interval' is for the DAILY Sharpe
+        ci_low_daily = res.confidence_interval.low
+        ci_high_daily = res.confidence_interval.high
+        
+        # 4. Annualize the confidence interval bounds
+        annualization_factor = np.sqrt(trading_days)
+        ci_low = ci_low_daily * annualization_factor
+        ci_high = ci_high_daily * annualization_factor
+        
     except Exception:
         ci_low, ci_high = np.nan, np.nan
 
     return sharpe, annualized_sharpe, (ci_low, ci_high)
-
 
 def calculate_winrate(returns):
     """Percentage of positive returns."""
@@ -512,68 +605,13 @@ def run_strategy(dataset, all_candles, freq, num):
     results = []
 
 
-
     dt = str(all_candles[-1].time)[:10]
 
 
-
-
-
-
-
-    ma_dict = calculate_moving_averages(all_candles, periods=(short_ma, long_ma))
-    cross_up, cross_down = detect_ma_crossovers(ma_dict[short_ma], ma_dict[long_ma])
-
-
-    # === START: Fix for MA Crossover Signals ===
-    # The 'ma_dict', 'cross_up', and 'cross_down' variables above are CORRUPTED
-    # by roll gaps. 'ma_dict' is kept *only* so the visualize_candles()
-    # plot doesn't break.
-    # We now OVERWRITE 'cross_up' and 'cross_down' with the CORRECT signals
-    # before they are used by the strategy.
-    
-    print("Recalculating crossovers per-symbol to fix roll gaps...")
-    
-    # 1. Map: candle's memory ID -> its global index in 'all_candles'
-    global_index_map = {id(c): i for i, c in enumerate(all_candles)}
-
-    # 2. Group all candles by their symbol
-    symbol_candle_groups = defaultdict(list)
-    for c in all_candles:
-        symbol_candle_groups[c.symbol].append(c)
-        
-    # We will re-build these lists from scratch
-    correct_cross_up = []
-    correct_cross_down = []
-    
-    # 3. Loop over each symbol's group
-    for symbol, sym_candles in symbol_candle_groups.items():
-        if len(sym_candles) < long_ma:
-            continue
-            
-        # 4. Calculate MAs *only* for this single symbol's candles
-        ma_dict_local = calculate_moving_averages(sym_candles, periods=(short_ma, long_ma))
-        
-        # 5. Find crossovers. These are *local* indices
-        local_cross_up, local_cross_down = detect_ma_crossovers(ma_dict_local[short_ma], ma_dict_local[long_ma])
-
-        # 6. Translate local indices back to global and add to correct lists
-        for local_idx in local_cross_up:
-            correct_cross_up.append(global_index_map[id(sym_candles[local_idx])])
-            
-        for local_idx in local_cross_down:
-            correct_cross_down.append(global_index_map[id(sym_candles[local_idx])])
-
-    # 7. OVERWRITE the old, incorrect lists with the new, correct ones.
-    #    The 'all_crosses' list below will now be built from valid signals.
-    cross_up = sorted(correct_cross_up)
-    cross_down = sorted(correct_cross_down)
-
+    print("Recalculating MAs and crossovers per-symbol to fix roll gaps...")    
+    # This single function call replaces the entire complex block
+    ma_dict, cross_up, cross_down = calculate_per_symbol_ma(all_candles, short_ma, long_ma)
     print(f"Found {len(cross_up)} valid cross-ups and {len(cross_down)} valid cross-downs.")
-    # === END: Fix for MA Crossover Signals ===
-
-
-
 
 
     # === Build Volume Profiles between crossovers ===
@@ -682,7 +720,10 @@ Add Slippage                         OK
 Plot Entries stop and tp             OK
 Fix POC step (0.0005)                OK
 Fix moving Average  Mistake          OK
-Make Moving Average Fix Clean
+Make Moving Average Fix Clean        OK
+Fix Sharpe Calculation               OK
+Review Trade Closing
+Review for other possible mistakes
 Compute sharpe using % daily returns
 Add Metric Average Trade Duration
 Control Trade Duration               OK
