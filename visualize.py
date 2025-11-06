@@ -193,7 +193,7 @@ def decide_entry_direction(b_candle_close, poc, current_candle):
     return None
 
                     
-def detect_entries(candles, volume_profiles):
+def detect_entries(candles, volume_profiles, same_symbols=True):
     """
     Detects when candles touch a POC level from prior volume profiles.
 
@@ -216,11 +216,16 @@ def detect_entries(candles, volume_profiles):
     for vp in volume_profiles:
         poc = vp["poc"]
         B_time = pd.Timestamp(vp["B"]).tz_localize(None)
+        vp_symbol = vp["symbol"]
 
         # Find the candle that matches B
         b_candle = next((c for c in candles if pd.Timestamp(c.time).tz_localize(None) == B_time), None)
         if b_candle is None:
             print(f"⚠️ Could not find B candle at {B_time}")
+            continue
+
+        if same_symbols and b_candle.symbol != vp_symbol:
+            print(f"⚠️ B-candle symbol ({b_candle.symbol}) does not match VP symbol ({vp_symbol}) at {B_time}")
             continue
 
         b_close = b_candle.close
@@ -230,10 +235,13 @@ def detect_entries(candles, volume_profiles):
             if pd.Timestamp(c.time).tz_localize(None) <= B_time:
                 continue  # only check after B
 
+            if same_symbols and c.symbol != vp_symbol:
+                break  # Stop search, we are on a new contract
+
             entry_type = decide_entry_direction(b_close, poc, c)
 
             if entry_type:
-                entries.append({ "B": B_time, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type})
+                entries.append({ "B": B_time, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type, "symbol": vp_symbol})
                 break  # stop after first touch
 
     return entries
@@ -635,8 +643,12 @@ def run_strategy(dataset, all_candles, freq, num):
         if vp is None:
             continue
 
+        if all_candles[idx_a].symbol != all_candles[idx_b].symbol:
+            raise ValueError(f"Symbol mismatch: {all_candles[idx_a].symbol} != {all_candles[idx_b].symbol}")
+        
+        current_symbol = all_candles[idx_a].symbol
         poc = calculate_poc(vp)
-        volume_profiles.append({"A": A, "B": B, "poc": poc})
+        volume_profiles.append({"A": A, "B": B, "poc": poc, "symbol": current_symbol})
         avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
     entries = detect_entries(all_candles, volume_profiles)
@@ -681,7 +693,7 @@ if __name__ == "__main__":
     date = int(sys.argv[1])
     dataset, days, first_date, last_date = load_raw_data(date, max_files=None)
 
-    freq = "25min"
+    freq = "60min"
     symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
     roll_schedule = {
         "6EH4": ("2024-12-14", "2024-03-15"),
@@ -725,6 +737,7 @@ Fix Sharpe Calculation               OK
 Review Trade Closing
 Review for other possible mistakes
 Compute sharpe using % daily returns
+Limit trades to same contract as vp  OK
 Add Metric Average Trade Duration
 Control Trade Duration               OK
 Optimize load_data function
