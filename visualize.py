@@ -487,7 +487,7 @@ def calculate_winrate(returns):
     if len(returns) == 0:
         return 0.0
     wins = np.sum(returns > 0)
-    return (wins / len(returns)) * 100
+    return (wins / np.sum(returns != 0)) * 100
 
 def calculate_max_drawdown(returns):
     """Compute max drawdown from cumulative equity curve."""
@@ -560,7 +560,7 @@ def compute_data(l, last_date, n):
                 "Sharpe Ratio": round(sharpe, 3),
                 "Annualized Sharpe": round(annualized_sharpe, 3),
                 "Sharpe 95% CI": (round(ci[0], 3), round(ci[1], 3)),
-                "Win Rate (%)": round(winrate, 2),
+                "Daily Win Rate (%)": round(winrate, 2),
                 "Max Drawdown": round(max_dd, 3),
                 "Profit Factor": round(profit_factor, 3),
                 "Expectancy": round(expectancy, 3),
@@ -713,7 +713,7 @@ if __name__ == "__main__":
             all_candles.append(t)
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, freq, 12)
+    run_strategy(dataset, all_candles, freq, 6)
 
 '''
 Todo
