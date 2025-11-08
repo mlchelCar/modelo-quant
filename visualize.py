@@ -246,49 +246,35 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win_size=125, costs=7, contracts=1, slipage_on_losses=12.5):
+def result_from_entries(entries, candles, stop_losses, rrratios, last_date, win_size=125, costs=7, contracts=1, slipage_on_losses=12.5):
     results = []
 
     for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
+        # ... [KEEP ALL YOUR EXISTING TRADE LOGIC HERE] ...
+        # ... down to:
+        # results.append((entry_time, result))
+
+        # --- COPY-PASTE ALL LOGIC ABOVE FROM YOUR ORIGINAL FUNCTION ---
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
-
-        # Normalize timezone
-        if entry_time.tzinfo is not None:
-            entry_time = entry_time.tz_convert(None)
-
-        # --- 1️⃣ Determine closing time ---
-        if entry_time.hour < 21:
-            closing_time = entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
-        else:
-            closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0, second=0, microsecond=0)
-
-        # --- 2️⃣ Define stop/target levels ---
+        if entry_time.tzinfo is not None: entry_time = entry_time.tz_convert(None)
+        if entry_time.hour < 21: closing_time = entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
+        else: closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0, second=0, microsecond=0)
         if direction == "long":
             stop_level = entry_price - sl_dist * 5
             target_level = entry_price + rr * sl_dist * 5
         else:
             stop_level = entry_price + sl_dist * 5
             target_level = entry_price - rr * sl_dist * 5
-
         result = 0
-        print(f"\nEntry at {entry_time}, price={entry_price:.5f}, dir={direction}, " f"stop={stop_level:.5f}, target={target_level:.5f}, closing_time={closing_time}")
-
         prev_close = entry_price
         trade_closed = False
-
         for candle in candles:
             candle_time = candle.time
-            if candle_time.tzinfo is not None:
-                candle_time = candle_time.tz_convert(None)
-
-            if candle_time <= entry_time:
-                continue
-
+            if candle_time.tzinfo is not None: candle_time = candle_time.tz_convert(None)
+            if candle_time <= entry_time: continue
             high, low, close = candle.high, candle.low, candle.close
-
-            # --- Stop or Target first ---
             if direction == "long":
                 if low <= stop_level:
                     result = -1 * win_size - costs * contracts - slipage_on_losses
@@ -307,59 +293,43 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win
                     result = rr * win_size - costs * contracts
                     trade_closed = True
                     break
-
-            # --- Time-based closure check ---
             if candle_time > closing_time:
-                # close at previous candle close
                 close = prev_close
-                if direction == "long":
-                    result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
-                else:
-                    result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
-                print(f"Closing trade at {closing_time} (using prev close {close:.5f}), result={result:.2f}")
+                if direction == "long": result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
+                else: result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
                 trade_closed = True
                 break
-
-            prev_close = close  # keep track for next iteration
-
-        # --- Fallback: still open at the end ---
+            prev_close = close
         if not trade_closed:
-            print("Trade remained open — closing at last candle price.")
             close = candles[-1].close
-            if direction == "long":
-                result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
-            else:
-                result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
-
+            if direction == "long": result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
+            else: result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
+        
+        # Append timestamp and result
         results.append((entry_time, result))
+        # --- END OF COPIED LOGIC ---
 
-    # Ensure trade_list is sorted chronologically
     trade_list = sorted(results, key=lambda x: x[0])
 
-    # Create list of all weekdays between first_date and last_date (exclude Saturdays)
-    first_date = trade_list[0][0].normalize()
-    last_date = pd.to_datetime(str(last_date), format="mixed", dayfirst=False)
-    days = pd.date_range(start=first_date, end=last_date, freq="D")
-    
-    days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
+    # --- AGGREGATE TO DAILY ---
+    first_date = trade_list[0][0].normalize() if len(trade_list) > 0 else pd.Timestamp(last_date).normalize()
+    last_date_dt = pd.to_datetime(str(last_date), format="mixed", dayfirst=False)
+    days = pd.date_range(start=first_date, end=last_date_dt, freq="D")
+    days = [d for d in days if d.weekday() != 5]
 
-    # Initialize dictionary to store daily returns
-    daily_returns = {day.date(): 0 for day in days}
-
-    # Group trades by day and sum results
-    trade_dict = {}
+    daily_returns_map = {day.date(): 0.0 for day in days}
     for trade in trade_list:
         day = trade[0].date()
-        trade_dict[day] = trade_dict.get(day, 0) + trade[1]
+        # Only add if it falls within our defined date range
+        if day in daily_returns_map:
+             daily_returns_map[day] += trade[1]
 
-    # Assign the sum to daily_returns (if day not in trade_dict → remains 0)
-    for day in daily_returns:
-        daily_returns[day] = trade_dict.get(day, 0)
+    daily_returns_list = [val for val in daily_returns_map.values()]
 
-    l = [i for i in daily_returns.values()]
-    l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns
+    # Extract just the PnL values for the trade-based list
+    raw_trade_pnl = [t[1] for t in trade_list]
 
-    return l
+    return daily_returns_list, raw_trade_pnl
 
 def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
@@ -514,92 +484,109 @@ def calculate_expectancy(returns):
     if len(returns) == 0:
         return 0.0
     return np.mean(returns)
+def compute_data(daily_l, trade_l, n):
+    # ... [Keep the _create_splits helper function exactly as before] ...
+    def _create_splits(data_list, n_splits):
+        t = len(data_list)
+        d = []
+        r = t % n_splits
+        temp_list = list(data_list)
+        for i in range(n_splits):
+            v = []
+            count = (t // n_splits) + r
+            for j in range(count):
+                if temp_list:
+                    v.append(temp_list.pop(0))
+            r = 0
+            d.append(v)
+        if n_splits == 1: return [[d[0], []]]
+        splits = []
+        for i in range(len(d) - 1):
+            l_fit = [item for sublist in d[:i+1] for item in sublist]
+            l_test = [item for sublist in d[i+1:] for item in sublist]
+            splits.append([l_fit, l_test])
+        return splits
 
-
-def compute_data(l, last_date, n):
-    """
-    Compute all key strategy metrics.
-    """
-    t = len(l)
-
-    # Group the list into n groups the first having t%n more elements
-    d = []
-    r = t % n
-    for i in range(n):
-        v = []
-        for j in range((t//n)+r):
-            v.append(l.pop(0))
-        r = 0
-        d.append(v)
-    
-    data = []
-    for i in range(len(d)-1):
-        l_fit = d[:i+1]
-        l_test = d[i+1:]
-
-        l_fit = [item for sublist in l_fit for item in sublist]
-        l_test = [item for sublist in l_test for item in sublist]
-        data.append([l_fit, l_test])
-        
-    if n == 1: data = [ [d[0], []] ]
-
-
+    daily_splits = _create_splits(daily_l, n)
+    trade_splits = _create_splits(trade_l, n)
     results = []
-    for p in data:
+
+    for (d_fit, d_test), (t_fit, t_test) in zip(daily_splits, trade_splits):
         r = []
-        for l in p:
-            if l == []: r.append({})
-            sharpe, annualized_sharpe, ci = calculate_sharpe(l)
-            winrate = calculate_winrate(l)
-            max_dd = calculate_max_drawdown(l)
-            profit_factor = calculate_profit_factor(l)
-            expectancy = calculate_expectancy(l)
+        for daily_subset, trade_subset in [(d_fit, t_fit), (d_test, t_test)]:
+            if not daily_subset and not trade_subset:
+                r.append({})
+                continue
+
+            sharpe, annualized_sharpe, ci = calculate_sharpe(daily_subset)
+            max_dd = calculate_max_drawdown(daily_subset)
+            winrate = calculate_winrate(trade_subset)
+            profit_factor = calculate_profit_factor(trade_subset)
+            expectancy = calculate_expectancy(trade_subset)
 
             r.append({
-                'Returns': l,
                 "Sharpe Ratio": round(sharpe, 3),
                 "Annualized Sharpe": round(annualized_sharpe, 3),
                 "Sharpe 95% CI": (round(ci[0], 3), round(ci[1], 3)),
-                "Daily Win Rate (%)": round(winrate, 2),
+                "Win Rate (%)": round(winrate, 2),
                 "Max Drawdown": round(max_dd, 3),
                 "Profit Factor": round(profit_factor, 3),
                 "Expectancy": round(expectancy, 3),
-                "Total Trades": len(l)
+                "Total Trades": len(trade_subset),
+                "Trade PnL List": [round(x, 2) for x in trade_subset] # <--- ADDED THIS
             })
         results.append(r)
-
     return results
 
-def print_results(results, number, best=5):
+def print_results(results, number, best=15):
     for i in range(number-1):
         k = []
         for variant in results:
-            k.append((variant, i ))
+            # Ensure the metric exists before trying to sort by it
+            metric = variant.metrics[i][0].get("Sharpe Ratio", -999)
+            k.append((variant, i, metric))
 
-        k = sorted(k, key=lambda x: x[0].metrics[x[1]][0].get("Sharpe Ratio", 0), reverse=True)[:best]
+        # Sort by the metric found above
+        k = sorted(k, key=lambda x: x[2], reverse=True)[:best]
 
-        for j, v in enumerate(k):
+        for j, (variant, idx, _) in enumerate(k):
+            print(f"\n{'='*40}")
+            print(f"Rolling {i} - Variant {j} - {variant.name}")
+            print(f"{'='*40}")
 
-            print(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
-            for m in v[0].metrics[v[1]][0]:
-                print(f"{m}: {v[0].metrics[v[1]][0][m]}")
+            # --- FIT METRICS ---
+            print("--- FIT METRICS ---")
+            fit_metrics = variant.metrics[idx][0]
+            for m, val in fit_metrics.items():
+                if m == "Trade PnL List":
+                     print(f"\n{m} ({len(val)} trades):\n{val}\n")
+                else:
+                     print(f"{m:<20}: {val}")
 
-            print(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
-            for m in v[0].metrics[v[1]][1]:
-                print(f"{m}: {v[0].metrics[v[1]][1][m]}")
+            # --- TEST METRICS ---
+            print("\n--- TEST METRICS ---")
+            test_metrics = variant.metrics[idx][1]
+            if not test_metrics:
+                print("No Test data for this split.")
+            else:
+                for m, val in test_metrics.items():
+                    if m == "Trade PnL List":
+                        print(f"\n{m} ({len(val)} trades):\n{val}\n")
+                    else:
+                        print(f"{m:<20}: {val}")
 
 class Variant():
     def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num, c=1):
         self.entries = entries
-        self.candles = candles
-        self.stop_losses = stop_losses
-        self.rrratios = rrratios
-        
         self.name = n
-        self.results = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
-        #print(len(self.results)) # 312 days, 26 per month
-        #quit()
-        self.metrics =  compute_data(self.results, last_date, num)
+        
+        # 1. Get the two separate lists
+        self.daily_returns, self.trade_returns = result_from_entries(
+             entries, candles, stop_losses, rrratios, last_date, contracts=c
+        )
+        
+        # 2. Pass both to compute_data (along with 'num' splits)
+        self.metrics = compute_data(self.daily_returns, self.trade_returns, num)
 
 def run_strategy(dataset, all_candles, freq, num):
     print(f"Running strategy on {len(all_candles)} candles.")
@@ -661,7 +648,7 @@ def run_strategy(dataset, all_candles, freq, num):
         contracts = 1
         if stop == 10: contracts = 2
 
-        for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20]:
+        for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7,  8, 9, 10, 11, 12, 13, 14, 15, 20]:
             name = f"{stop}_{r}"
             stop_losses = [stop / 100000] * len(entries)
             rrratios = [r] * len(entries)
@@ -735,10 +722,16 @@ Fix moving Average  Mistake             OK
 Make Moving Average Fix Clean           OK
 Fix Sharpe Calculation                  OK
 Review Trade Closing
-Review for other possible mistakes
+Review for other possible mistakes      OK
 Compute sharpe using % daily returns 
 Limit trades to same contract as vp     OK
+Fix rolling windows size based on trades list problem
 Add Metric Average Trade Duration
+Add Metric Avg Win
+Add Metric Avg Loss
+Add Metric Number of days
+Fix metrics Total Trades
+Compute_data can include daily trades 
 Control Trade Duration                  OK
 Optimize load_data function
 Optimize volume profile function        OK
