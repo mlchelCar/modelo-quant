@@ -83,7 +83,7 @@ def calculate_poc(vp, return_volume=False):
 
     return (poc_price, poc_volume) if return_volume else poc_price
 
-def calculate_per_symbol_ma(all_candles, short_ma, long_ma):
+def calculate_moving_averages_and_crossovers(all_candles, short_ma, long_ma, per_symbol=True):
     """
     Calculates MAs and Crossovers correctly, respecting symbol boundaries
     to avoid roll gap corruption.
@@ -100,6 +100,20 @@ def calculate_per_symbol_ma(all_candles, short_ma, long_ma):
     """
     periods = (short_ma, long_ma)
     
+    if not per_symbol:
+        print("Calculating MAs and crossovers globally...")
+        # Compute global MAs
+        ma_dict = calculate_moving_averages(all_candles, periods=periods)
+
+        # Detect crossovers globally
+        cross_up, cross_down = detect_ma_crossovers(
+            ma_dict[short_ma], ma_dict[long_ma]
+        )
+
+        # Return directly
+        return ma_dict, cross_up, cross_down
+
+    print("Calculating MAs and crossovers per-symbol to fix roll gaps...")    
     # 1. Map: candle's memory ID -> its global index in 'all_candles'
     global_index_map = {id(c): i for i, c in enumerate(all_candles)}
 
@@ -619,9 +633,8 @@ def run_strategy(dataset, all_candles, num, title=f"6E 60min Candlestick Chart")
     dt = str(all_candles[-1].time)[:10]
 
 
-    print("Recalculating MAs and crossovers per-symbol to fix roll gaps...")    
-    # This single function call replaces the entire complex block
-    ma_dict, cross_up, cross_down = calculate_per_symbol_ma(all_candles, short_ma, long_ma)
+    # === Calculate Moving Averages ===
+    ma_dict, cross_up, cross_down = calculate_moving_averages_and_crossovers(all_candles, short_ma, long_ma)
     print(f"Found {len(cross_up)} valid cross-ups and {len(cross_down)} valid cross-downs.")
 
 
