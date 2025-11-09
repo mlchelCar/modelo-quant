@@ -5,6 +5,14 @@
 
 
 
+
+
+
+
+
+
+
+
 - Resolver situacao dos simbolos          OK
 - Calcular Moving Average Crossings       OK
 - Calcular Volume Profile                 OK
