@@ -83,7 +83,7 @@ def calculate_poc(vp, return_volume=False):
 
     return (poc_price, poc_volume) if return_volume else poc_price
 
-def calculate_moving_averages_and_crossovers(all_candles, short_ma, long_ma, per_symbol=True):
+def calculate_moving_averages_and_crossovers(all_candles, short_ma, long_ma, per_symbol=False):
     """
     Calculates MAs and Crossovers correctly, respecting symbol boundaries
     to avoid roll gap corruption.
@@ -306,19 +306,23 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win
             if direction == "long":
                 if low <= stop_level:
                     result = -1 * win_size - costs * contracts - slipage_on_losses
+                    print(f"→ STOP HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
                 elif high >= target_level:
                     result = rr * win_size - costs * contracts
+                    print(f"→ TARGET HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
             else:
                 if high >= stop_level:
                     result = -1 * win_size - costs * contracts - slipage_on_losses
+                    print(f"→ STOP HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
                 elif low <= target_level:
                     result = rr * win_size - costs * contracts
+                    print(f"→ TARGET HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
 
@@ -338,12 +342,12 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win
 
         # --- Fallback: still open at the end ---
         if not trade_closed:
-            print("Trade remained open — closing at last candle price.")
             close = candles[-1].close
             if direction == "long":
                 result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
             else:
                 result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
+            print(f"Trade remained open — closing at last candle price ({close:.5f}), result={result:.2f}")
 
         results.append((entry_time, result))
 
@@ -579,7 +583,7 @@ def compute_data(l, last_date, n, trade_list):
                 "Max Drawdown": round(max_dd, 3),
                 "Profit Factor": round(profit_factor, 3),
                 "Expectancy": round(expectancy, 3),
-                "Trades Per Month (Global)": len(trade_list)/12,
+                "Total Trades (Global)": len(trade_list),
                 "Total Days": len(l)
             })
         results.append(r)
@@ -787,6 +791,7 @@ Add Metric Avg Loss
 Add Metric Number of days               OK
 Fix metrics Total Trades                OK
 Control Trade Duration                  OK
+Optimize entry function
 Optimize load_data function
 Optimize volume profile function        OK
 Generate p&l graph function
