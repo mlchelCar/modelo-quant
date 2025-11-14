@@ -260,7 +260,7 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win_size=125, costs=7, contracts=1, slipage_on_losses=12.5):
+def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win_size=125, costs=0.84*2, contracts=1, slipage_on_losses=12.5):
     results = []
 
     for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
@@ -678,8 +678,9 @@ def run_strategy(dataset, all_candles, num, title=f"6E 60min Candlestick Chart")
 
     # === Create Variants ===
     for stop in [10, 20]:
-        contracts = 1
-        if stop == 10: contracts = 2
+        contracts = 5
+        if stop == 10: contracts = 10
+
 
         for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]:
             name = f"{stop}_{r}"
