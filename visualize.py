@@ -9,6 +9,7 @@ from scipy.stats import bootstrap
 from numba import njit
 import pandas.api.types as ptypes
 from collections import defaultdict
+from collections import Counter
 
 @njit
 def _volume_profile_numba(prices, volumes, bin_edges):
@@ -591,15 +592,30 @@ def compute_data(l, last_date, n, trade_list):
     return results
 
 def print_results(results, number, best=5):
-    for i in range(number-1):
+    # Counter for how many times each variant appears in the top 'best'
+    appearance_counter = Counter()
+    ranking_results = []   # store (rolling, rank, variant) for later plots
+
+    # --- FIRST PASS: COUNT APPEARANCES ---
+    for i in range(number - 1):
         k = []
         for variant in results:
             k.append((variant, i ))
 
-        k = sorted(k, key=lambda x: x[0].metrics[x[1]][0].get("Sharpe Ratio", 0), reverse=True)[:best]
+        # sort by Sharpe Ratio in FIT
+        k = sorted(
+            k,
+            key=lambda x: x[0].metrics[x[1]][0].get("Sharpe Ratio", 0),
+            reverse=True
+        )[:best]
 
+        # Track appearances
+        for rank, (variant, r) in enumerate(k):
+            appearance_counter[variant.name] += 1
+            ranking_results.append((r, rank, variant))
+
+        # Print results (your original code)
         for j, v in enumerate(k):
-
             print(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
             for m in v[0].metrics[v[1]][0]:
                 print(f"{m}: {v[0].metrics[v[1]][0][m]}")
@@ -607,6 +623,104 @@ def print_results(results, number, best=5):
             print(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
             for m in v[0].metrics[v[1]][1]:
                 print(f"{m}: {v[0].metrics[v[1]][1][m]}")
+
+    # Print summary BEFORE printing each rolling result
+    print("\n========== Variant Appearance Count (FIT Rankings) ==========")
+    for name, count in sorted(appearance_counter.items(), key=lambda x: -x[1]):
+        print(f"{name}: {count} times")
+
+    best_variant_name, _ = appearance_counter.most_common(1)[0]
+    best_variant = next(v for v in results if v.name == best_variant_name)
+
+    print("\n============================================")
+    print("BEST VARIANT:", best_variant.name)
+    print("Appeared:", appearance_counter[best_variant_name], "times")
+    print("============================================")
+
+    make_graphs(best_variant)
+
+def make_graphs(variant):
+    """
+    Generates:
+      1. P&L cumulative equity curve for the best variant
+      2. Boxplot of TEST confidence intervals across rollings
+    """
+    print(f"\nCreating graphs for BEST VARIANT: {variant.name}")
+
+    # ============================================================
+    # 1) P&L GRAPH (CUMULATIVE EQUITY CURVE)
+    # ============================================================
+    daily_returns = variant.results   # this is a DAILY LIST from result_from_entries
+    cum_pnl = np.cumsum(daily_returns)
+
+    fig1 = go.Figure()
+    fig1.add_trace(go.Scatter(
+        y=cum_pnl,
+        mode="lines",
+        line=dict(width=2),
+        name="Equity Curve"
+    ))
+
+    fig1.update_layout(
+        title=f"Equity Curve — Variant {variant.name}",
+        xaxis_title="Days",
+        yaxis_title="Cumulative P&L",
+        height=500
+    )
+
+    fig1.show()
+
+
+    # ============================================================
+    # 2) BOXPLOT OF TEST CONFIDENCE INTERVALS PER ROLLING
+    # ============================================================
+
+    test_cis_low = []
+    test_cis_high = []
+    labels = []
+
+    # Each rolling index i has:
+    # variant.metrics[i][0] = FIT metrics
+    # variant.metrics[i][1] = TEST metrics
+    # we want the TEST CI
+    for i in range(len(variant.metrics)):
+        test_metrics = variant.metrics[i][1]
+        if test_metrics == {}:
+            # Happens for final window with no test data
+            continue
+
+        ci_low, ci_high = test_metrics["Sharpe 95% CI"]
+        test_cis_low.append(ci_low)
+        test_cis_high.append(ci_high)
+        labels.append(f"Roll {i}")
+
+    # Convert CI into a suitable format for boxplot:
+    # we represent each rolling as a distribution defined only by low/high,
+    # so we simply give each as two points.
+    box_data = [
+        [test_cis_low[i], test_cis_high[i]]
+        for i in range(len(labels))
+    ]
+
+    fig2 = go.Figure()
+
+    for i, lbl in enumerate(labels):
+        fig2.add_trace(go.Box(
+            y=box_data[i],
+            name=lbl,
+            boxmean=True,
+            quartilemethod="exclusive"
+        ))
+
+    fig2.update_layout(
+        title=f"TEST Sharpe Confidence Intervals — Variant {variant.name}",
+        yaxis_title="Sharpe Ratio",
+        height=600
+    )
+
+    fig2.show()
+
+    print(f"Graphs generated for variant {variant.name}.")
 
 class Variant():
     def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num, c=1):
