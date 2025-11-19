@@ -664,8 +664,15 @@ def determine_contracts(entries, stop_size):
     if stop_size == 5: return [5]*len(entries)
     if stop_size == 10: return [10]*len(entries)
 
-def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min Candlestick Chart"):
-    print(f"Running strategy on {len(all_candles)} candles.")
+def calculate_atr(candles, period=20):
+    raise NotImplementedError
+
+def calculate_std(candles, period=20):
+    raise NotImplementedError
+
+def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
+    print(f"Running strategy {title} {stop_type} stop loss on {len(all_candles)} candles.")
+    print(f"Using {num} rolling windows.")
 
     short_ma = 40
     long_ma = 50
@@ -684,6 +691,13 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min Candlest
     print(f"Found {len(cross_up)} valid cross-ups and {len(cross_down)} valid cross-downs.")
 
 
+    # 2️⃣ Calculate ATR and std once for the full candle series
+    atr_series = calculate_atr(all_candles, period=20)
+    std_series = calculate_std(all_candles, period=20)
+
+
+
+   
     # === Build Volume Profiles between crossovers ===
     volume_profiles = []
     all_crosses = sorted(
@@ -714,9 +728,15 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min Candlest
         avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
     entries = detect_entries(all_candles, volume_profiles)
-    print(f"🔸 Found {len(entries)} entries in this split.")
+
+
 
     aentries.extend(entries)
+
+    # 5️⃣ Attach ATR to each entry
+    for i in len(entries):
+        entries[i]["atr"] = atr_series[i]
+        entries[i]["std"] = std_series[i]
 
     # === Create Variants ===
     for stop in [10, 20]:
@@ -838,6 +858,7 @@ Fix metrics Total Trades                OK
 Control Trade Duration                  OK
 Optimize entry function
 Optimize load_data function
+Optimizacao: fazer compute_data para todas variantes ao mesmo tempo
 Optimize volume profile function        OK
 Generate p&l graph function
 Fit and Test separated (out of sample)  OK
