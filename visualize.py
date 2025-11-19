@@ -261,10 +261,10 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win_size=125, costs=0.84*2, contracts=1, slipage_on_losses=12.5):
+def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, contracts, win_size=125, costs=0.84*2 , slipage_on_losses=12.5):
     results = []
 
-    for entry, sl_dist, rr in zip(entries, stop_losses, rrratios):
+    for entry, sl_dist, rr, c in zip(entries, stop_losses, rrratios, contracts):
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
@@ -306,23 +306,23 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win
             # --- Stop or Target first ---
             if direction == "long":
                 if low <= stop_level:
-                    result = -1 * win_size - costs * contracts - slipage_on_losses
+                    result = -1 * win_size - costs * c - slipage_on_losses
                     print(f"→ STOP HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
                 elif high >= target_level:
-                    result = rr * win_size - costs * contracts
+                    result = rr * win_size - costs * c
                     print(f"→ TARGET HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
             else:
                 if high >= stop_level:
-                    result = -1 * win_size - costs * contracts - slipage_on_losses
+                    result = -1 * win_size - costs * c - slipage_on_losses
                     print(f"→ STOP HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
                 elif low <= target_level:
-                    result = rr * win_size - costs * contracts
+                    result = rr * win_size - costs * c
                     print(f"→ TARGET HIT at {candle_time}, result={result:.2f}")
                     trade_closed = True
                     break
@@ -332,9 +332,9 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win
                 # close at previous candle close
                 close = prev_close
                 if direction == "long":
-                    result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
+                    result = (close - entry_price) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
                 else:
-                    result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
+                    result = (entry_price - close) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
                 print(f"Closing trade at {closing_time} (using prev close {close:.5f}), result={result:.2f}")
                 trade_closed = True
                 break
@@ -345,9 +345,9 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, win
         if not trade_closed:
             close = candles[-1].close
             if direction == "long":
-                result = (close - entry_price) / (sl_dist * 5) * win_size - costs * contracts
+                result = (close - entry_price) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
             else:
-                result = (entry_price - close) / (sl_dist * 5) * win_size - costs * contracts
+                result = (entry_price - close) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
             print(f"Trade remained open — closing at last candle price ({close:.5f}), result={result:.2f}")
 
         results.append((entry_time, result))
@@ -645,7 +645,7 @@ def make_graphs(variant):
     pass
 
 class Variant():
-    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num, c=1):
+    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num, c):
         self.entries = entries
         self.candles = candles
         self.stop_losses = stop_losses
@@ -657,8 +657,14 @@ class Variant():
         #quit()
         self.metrics =  compute_data(self.results, last_date, num, self.trade_list)
 
+def determine_stop_losses(stop_type, entries, stop):
+    if stop_type == "fixed": return [stop / 100000] * len(entries)
+    
+def determine_contracts(entries, stop_size):
+    if stop_size == 5: return [5]*len(entries)
+    if stop_size == 10: return [10]*len(entries)
 
-def run_strategy(dataset, all_candles, num, title=f"6E 60min Candlestick Chart"):
+def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min Candlestick Chart"):
     print(f"Running strategy on {len(all_candles)} candles.")
 
     short_ma = 40
@@ -714,13 +720,12 @@ def run_strategy(dataset, all_candles, num, title=f"6E 60min Candlestick Chart")
 
     # === Create Variants ===
     for stop in [10, 20]:
-        contracts = 5
-        if stop == 10: contracts = 10
-
+        contracts = determine_contracts(entries, stop)
+        stop_losses = determine_stop_losses(stop_type, entries, stop)
 
         for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]:
             name = f"{stop}_{r}"
-            stop_losses = [stop / 100000] * len(entries)
+
             rrratios = [r] * len(entries)
             
             try:
@@ -796,8 +801,11 @@ if __name__ == "__main__":
         for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule):
             all_candles.append(t)
 
+    stop_type = "fixed"
+    # stop_type = "atr"
+
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, 12, tit)
+    run_strategy(dataset, all_candles, 12, stop_type, tit)
 
 '''
 Todo
@@ -818,9 +826,9 @@ Fix POC step (0.0005)                   OK
 Fix moving Average  Mistake             OK
 Make Moving Average Fix Clean           OK
 Fix Sharpe Calculation                  OK
-Review Trade Closing
+Review Trade Closing                    OK
 Review for other possible mistakes      OK
-Compute sharpe using % daily returns 
+Compute sharpe using % daily returns    -
 Limit trades to same contract as vp     OK
 Add Metric Average Trade Duration
 Add Metric Avg Win                      OK
@@ -835,4 +843,8 @@ Generate p&l graph function
 Fit and Test separated (out of sample)  OK
 Fit and Test rolling out of sample      OK
 In Sample Permutation Test
+Permutate_candles function
+Position Sizing with volatility standardization
+Tralling Stop instead of take profit
+Position Sizing with Forecast Value
 '''
