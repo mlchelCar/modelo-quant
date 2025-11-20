@@ -716,24 +716,29 @@ def determine_contracts_volatility(entries, capital=100000, target_vol=0.10, tic
     target_daily_vol = (capital * target_vol) / math.sqrt(252)
 
     for e in entries:
-        std = e.get("std", None)  # must be DAILY std or ATR
+
+        std = e.get("std", None)  # must be DAILY std (in price units)
 
         if std is None or std <= 0:
             contracts.append(0)
             continue
 
-        # Convert price vol to dollar vol per contract
-        dollar_vol_per_contract = (std / tick_size) * tick_value
+        # Convert daily price std → ticks
+        std_ticks = std / tick_size
 
+        # Convert ticks → daily $ P&L volatility per contract
+        dollar_vol_per_contract = std_ticks * tick_value
+
+        # avoid division by zero
         if dollar_vol_per_contract <= 0:
             contracts.append(0)
             continue
 
-        # Correct Carver position size
+        # Volatility-based sizing
         pos = target_daily_vol / dollar_vol_per_contract
 
-        # floor to integer, ensure non-negative
-        pos = max(0, int(pos))
+        # round down to whole contracts
+        pos = int(max(0, math.floor(pos)))
 
         contracts.append(pos)
 
@@ -978,7 +983,7 @@ def run():
     # stop_type = "atr"
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, 2, stop_type, tit)
+    run_strategy(dataset, all_candles, 12, stop_type, tit)
 
 
 if __name__ == "__main__":
