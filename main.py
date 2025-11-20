@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
+from pathlib import Path
 
 class Candle:
     __slots__ = ('time', 'open', 'high', 'low', 'close', 'volume', 'symbol')
@@ -16,8 +17,7 @@ class Candle:
         self.close = close
         self.volume = volume
         self.symbol = symbol
-
-    
+   
 def separate_data(all_candles, number_days, first_date, last_date, fit_data_size):
     candles = all_candles[:]
     print(f"Separating data for {number_days} days...")
@@ -50,32 +50,56 @@ def separate_data(all_candles, number_days, first_date, last_date, fit_data_size
     
     return  [cd for wk in fit_data for cd in wk], [cd for wk in test_data for cd in wk]
 
-def load_raw_data(date, path="./data", max_files=None):
-    print(f"Loading data from {path} with date >= {date}...")
+def load_raw_data(initial_date, final_date, path="./data", max_files=None):
+    """
+    Load all .dbn files within the date range [initial_date, final_date].
+
+    Filenames must contain the date in positions [10:18], e.g.:
+        something_YYYYMMDD.dbn
+    """
+
+    # --- Convert datetime to int YYYYMMDD --- #
+    if not isinstance(initial_date, int):
+        initial_date = int(initial_date.strftime("%Y%m%d"))
+    if not isinstance(final_date, int):
+        final_date = int(final_date.strftime("%Y%m%d"))
+
+    print(f"Loading data from {path} with {initial_date} <= file_date <= {final_date}...")
+
     last_date = None
     data_path = Path(path)
+
     if not data_path.exists():
         raise ValueError(f"Path {path} does not exist")
 
     dfs = []
     count = 0
+
     for file in sorted(data_path.glob("*.dbn")):
-        if int(file.name[10:18]) >= date:
+        try:
             file_date = int(file.name[10:18])
-            last_date = file_date  # update last_date
+        except ValueError:
+            print(f"Skipping file (invalid date in name): {file.name}")
+            continue
+
+        # Check date range
+        if initial_date <= file_date <= final_date:
             print(f"  [{count+1}] {file.name}")
             dfs.append(db.DBNStore.from_file(str(file)).to_df())
+            last_date = file_date
             count += 1
+
             if max_files and count >= max_files:
                 break
 
     if not dfs:
-        raise ValueError(f"No .dbn files found with date >= {date} in {path}")
+        raise ValueError(f"No .dbn files found between {initial_date} and {final_date} in {path}")
 
     print(f"Combining {len(dfs)} files...")
     result = pd.concat(dfs, ignore_index=True)
     print(f"Total: {len(result):,} rows")
-    return result, count, date, last_date
+
+    return result, count, initial_date, last_date
 
 def permutate_candles():
     raise NotImplementedError

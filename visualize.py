@@ -10,6 +10,9 @@ from numba import njit
 import pandas.api.types as ptypes
 from collections import defaultdict
 from collections import Counter
+import time
+import datetime
+import math
 
 @njit
 def _volume_profile_numba(prices, volumes, bin_edges):
@@ -24,7 +27,6 @@ def _volume_profile_numba(prices, volumes, bin_edges):
         if 0 <= idx < n_bins:
             vol[idx] += volumes[i]
     return vol
-
 
 def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
     print(f"\nCalculating volume profile from {len(trades_df)} trades...")
@@ -70,7 +72,6 @@ def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
     price_bins = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
     return {"price_bins": price_bins, "volumes": vol, "A": A, "B": B, "symbol": symbol}
-
 
 def calculate_poc(vp, return_volume=False):
     """Return the price of the POC (and optionally the volume)."""
@@ -206,7 +207,6 @@ def decide_entry_direction(b_candle_close, poc, current_candle):
         return "short"
     
     return None
-
                     
 def detect_entries(candles, volume_profiles, same_symbols=False):
     """
@@ -261,37 +261,39 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, contracts, win_size=125, costs=0.84*2 , slipage_on_losses=12.5):
+def result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts,
+                        tick_size_in_price=0.00005, tick_value=1.25, costs=0.84*2, slipage_on_losses=0):
     results = []
 
-    for entry, sl_dist, rr, c in zip(entries, stop_losses, rrratios, contracts):
+    for entry, sl_ticks, rr, c in zip(entries, stop_losses, rrratios, contracts):
+
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
 
-        # Normalize timezone
         if entry_time.tzinfo is not None:
             entry_time = entry_time.tz_convert(None)
 
-        # --- 1️⃣ Determine closing time ---
-        if entry_time.hour < 21:
-            closing_time = entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
-        else:
-            closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0, second=0, microsecond=0)
+        # stop distance in PRICE
+        stop_dist_price = sl_ticks * tick_size_in_price
 
-        # --- 2️⃣ Define stop/target levels ---
+        # stop/target levels
         if direction == "long":
-            stop_level = entry_price - sl_dist * 5
-            target_level = entry_price + rr * sl_dist * 5
+            stop_level   = entry_price - stop_dist_price
+            target_level = entry_price + rr * stop_dist_price
         else:
-            stop_level = entry_price + sl_dist * 5
-            target_level = entry_price - rr * sl_dist * 5
-
-        result = 0
-        print(f"\nEntry at {entry_time}, price={entry_price:.5f}, dir={direction}, " f"stop={stop_level:.5f}, target={target_level:.5f}, closing_time={closing_time}")
+            stop_level   = entry_price + stop_dist_price
+            target_level = entry_price - rr * stop_dist_price
 
         prev_close = entry_price
         trade_closed = False
+        result = 0
+
+        # determine closing time
+        if entry_time.hour < 21:
+            closing_time = entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
+        else:
+            closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0)
 
         for candle in candles:
             candle_time = candle.time
@@ -303,52 +305,46 @@ def result_from_entries(entries, candles, stop_losses, rrratios,  last_date, con
 
             high, low, close = candle.high, candle.low, candle.close
 
-            # --- Stop or Target first ---
-            if direction == "long":
-                if low <= stop_level:
-                    result = -1 * win_size - costs * c - slipage_on_losses
-                    print(f"→ STOP HIT at {candle_time}, result={result:.2f}")
-                    trade_closed = True
-                    break
-                elif high >= target_level:
-                    result = rr * win_size - costs * c
-                    print(f"→ TARGET HIT at {candle_time}, result={result:.2f}")
-                    trade_closed = True
-                    break
-            else:
-                if high >= stop_level:
-                    result = -1 * win_size - costs * c - slipage_on_losses
-                    print(f"→ STOP HIT at {candle_time}, result={result:.2f}")
-                    trade_closed = True
-                    break
-                elif low <= target_level:
-                    result = rr * win_size - costs * c
-                    print(f"→ TARGET HIT at {candle_time}, result={result:.2f}")
-                    trade_closed = True
-                    break
-
-            # --- Time-based closure check ---
-            if candle_time > closing_time:
-                # close at previous candle close
-                close = prev_close
-                if direction == "long":
-                    result = (close - entry_price) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
-                else:
-                    result = (entry_price - close) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
-                print(f"Closing trade at {closing_time} (using prev close {close:.5f}), result={result:.2f}")
+            # stop hit
+            if direction == "long" and low <= stop_level:
+                result = -sl_ticks * tick_value * c - costs * c - slipage_on_losses
+                trade_closed = True
+                break
+            if direction == "short" and high >= stop_level:
+                result = -sl_ticks * tick_value * c - costs * c - slipage_on_losses
                 trade_closed = True
                 break
 
-            prev_close = close  # keep track for next iteration
+            # target hit
+            if direction == "long" and high >= target_level:
+                result = rr * sl_ticks * tick_value * c - costs * c
+                trade_closed = True
+                break
+            if direction == "short" and low <= target_level:
+                result = rr * sl_ticks * tick_value * c - costs * c
+                trade_closed = True
+                break
 
-        # --- Fallback: still open at the end ---
+            # time exit
+            if candle_time > closing_time:
+                ticks_pnl = (close - entry_price) / tick_size_in_price
+                if direction == "short":
+                    ticks_pnl = -ticks_pnl
+
+                result = ticks_pnl * tick_value * c - costs * c
+                trade_closed = True
+                break
+
+            prev_close = close
+
+        # fallback
         if not trade_closed:
             close = candles[-1].close
-            if direction == "long":
-                result = (close - entry_price) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
-            else:
-                result = (entry_price - close) / (sl_dist * 5) * win_size - costs * c - slipage_on_losses
-            print(f"Trade remained open — closing at last candle price ({close:.5f}), result={result:.2f}")
+            ticks_pnl = (close - entry_price) / tick_size_in_price
+            if direction == "short":
+                ticks_pnl = -ticks_pnl
+
+            result = ticks_pnl * tick_value * c - costs * c
 
         results.append((entry_time, result))
 
@@ -516,7 +512,6 @@ def calculate_max_drawdown(returns):
     max_drawdown = drawdowns.min()
     return max_drawdown
 
-
 def calculate_profit_factor(returns):
     """Sum of positive returns / absolute sum of negative returns."""
     returns = np.array(returns, dtype=float)
@@ -526,14 +521,12 @@ def calculate_profit_factor(returns):
         return np.inf
     return gross_profit / gross_loss
 
-
 def calculate_expectancy(returns):
     """Average profit per trade (mean return)."""
     returns = np.array(returns, dtype=float)
     if len(returns) == 0:
         return 0.0
     return np.mean(returns)
-
 
 def compute_data(l, last_date, n, trade_list):
     """
@@ -619,10 +612,12 @@ def print_results(results, number, best=5):
         # Print results (your original code)
         for j, v in enumerate(k):
             print(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
+            print(f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][0]:
                 print(f"{m}: {v[0].metrics[v[1]][0][m]}")
 
             print(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
+            print(f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][1]:
                 print(f"{m}: {v[0].metrics[v[1]][1][m]}")
 
@@ -636,10 +631,59 @@ def print_results(results, number, best=5):
 
     print("\n============================================")
     print("BEST VARIANT:", best_variant.name)
-    print("Appeared:", appearance_counter[best_variant_name], "times")
+    print(f"Total Fit (top {best}) Appearances: {appearance_counter[best_variant_name]}")
     print("============================================")
 
+    print_best_variant_details(best_variant)
+
     make_graphs(best_variant)
+
+def print_best_variant_details(best_variant):
+    print("\n========== Best Variant Detailed Metrics ==========\n")
+    print(f"Variant Name: {best_variant.name}")
+    print("---------------------------------------------------")
+
+    for i, rolling in enumerate(best_variant.metrics):
+        fit = rolling[0]   # dictionary of FIT metrics
+        test = rolling[1]  # dictionary of TEST metrics
+
+        print(f"\n================ Rolling {i+1} ================")
+
+        # =============================
+        # FIT METRICS
+        # =============================
+        # print("\n--- FIT Metrics ---")
+        # if fit != {}:
+        #     print(f"Sharpe Ratio: {fit['Sharpe Ratio']}")
+        #     print(f"Sharpe 95% CI: {fit['Sharpe 95% CI']}")
+        #     print(f"Daily Win Rate (%): {fit['Daily Win Rate (%)']}")
+        #     print(f"Max Drawdown: {fit['Max Drawdown']}")
+        #     print(f"Profit Factor: {fit['Profit Factor']}")
+        #     print(f"Expectancy: {fit['Expectancy']}")
+        #     print(f"Average Win: {fit['Average Win']:.2f}")
+        #     print(f"Average Loss: {fit['Average Loss']:.2f}")
+        #     print(f"Total Trades (Global): {fit['Total Trades (Global)']}")
+        #     print(f"Total Days: {fit['Total Days']}")
+        # else:
+        #     print("No FIT data (this is the last rolling window).")
+
+        # =============================
+        # TEST METRICS
+        # =============================
+        print("\n--- TEST Metrics ---")
+        if test != {}:
+            print(f"Annualized Sharpe: {test['Annualized Sharpe']}")
+            print(f"Sharpe 95% CI: {test['Sharpe 95% CI']}")
+            print(f"Daily Win Rate (%): {test['Daily Win Rate (%)']}")
+            # print(f"Max Drawdown: {test['Max Drawdown']}")
+            print(f"Profit Factor: {test['Profit Factor']}")
+            print(f"Expectancy: {test['Expectancy']}")
+            print(f"Average Win: {test['Average Win']:.2f}")
+            print(f"Average Loss: {test['Average Loss']:.2f}")
+            # print(f"Total Trades (Global): {test['Total Trades (Global)']}")
+            print(f"Total Days: {test['Total Days']}")
+        else:
+            print("No TEST data in this rolling window.")
 
 def make_graphs(variant):
     pass
@@ -650,6 +694,7 @@ class Variant():
         self.candles = candles
         self.stop_losses = stop_losses
         self.rrratios = rrratios
+        self.contracts = c
         
         self.name = n
         self.results, self.trade_list = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
@@ -658,17 +703,112 @@ class Variant():
         self.metrics =  compute_data(self.results, last_date, num, self.trade_list)
 
 def determine_stop_losses(stop_type, entries, stop):
-    if stop_type == "fixed": return [stop / 100000] * len(entries)
+    if stop_type == "fixed": return [stop] * len(entries)
     
 def determine_contracts(entries, stop_size):
-    if stop_size == 5: return [5]*len(entries)
+    if stop_size == 20: return [5]*len(entries)
     if stop_size == 10: return [10]*len(entries)
 
+def determine_contracts_volatility(entries, capital=100000, target_vol=0.10, tick_size=0.00005, tick_value=1.25):
+    contracts = []
+
+    # Convert annual target vol → daily target dollar P&L volatility
+    target_daily_vol = (capital * target_vol) / math.sqrt(252)
+
+    for e in entries:
+        std = e.get("std", None)  # must be DAILY std or ATR
+
+        if std is None or std <= 0:
+            contracts.append(0)
+            continue
+
+        # Convert price vol to dollar vol per contract
+        dollar_vol_per_contract = (std / tick_size) * tick_value
+
+        if dollar_vol_per_contract <= 0:
+            contracts.append(0)
+            continue
+
+        # Correct Carver position size
+        pos = target_daily_vol / dollar_vol_per_contract
+
+        # floor to integer, ensure non-negative
+        pos = max(0, int(pos))
+
+        contracts.append(pos)
+
+    return contracts
+
 def calculate_atr(candles, period=20):
-    raise NotImplementedError
+    """
+    Calculate ATR (Welles Wilder style) for the given candles.
+    Returns a list of ATR values aligned with candle indices.
+    """
+
+    n = len(candles)
+    atr = [0.0] * n
+    tr_list = [0.0] * n
+
+    # --- 1) Compute True Range for each candle ---
+    for i in range(1, n):
+        high = candles[i].high
+        low = candles[i].low
+        prev_close = candles[i-1].close
+
+        tr = max(
+            high - low,
+            abs(high - prev_close),
+            abs(low - prev_close)
+        )
+        tr_list[i] = tr
+
+    # --- 2) First ATR value = simple mean of first "period" TRs ---
+    for i in range(period):
+        atr[i] = None  # Not enough data
+
+    if n > period:
+        first_atr = sum(tr_list[1:period+1]) / period
+        atr[period] = first_atr
+
+        # --- 3) Wilder smoothing formula ---
+        alpha = 1.0 / period
+        for i in range(period+1, n):
+            prev = atr[i-1]
+            atr[i] = (prev * (1 - alpha)) + (tr_list[i] * alpha)
+
+    return atr
 
 def calculate_std(candles, period=20):
-    raise NotImplementedError
+
+    """
+    Calculate rolling standard deviation of returns over 'period'.
+    Returns a list aligned with candle indices.
+    """
+
+    n = len(candles)
+    std_list = [0.0] * n
+    returns = [0.0] * n
+
+    # --- 1) Compute returns ---
+    for i in range(1, n):
+        prev_close = candles[i-1].close
+        if prev_close != 0:
+            returns[i] = (candles[i].close - prev_close) / prev_close
+
+    # --- 2) Rolling std ---
+
+    for i in range(period):
+        std_list[i] = None  # not enough data
+
+    for i in range(period, n):
+        window = returns[i-period+1 : i+1]
+        mean = sum(window) / period
+
+        # sample variance (ddof=1)
+        var = sum((x - mean) ** 2 for x in window) / (period - 1) if period > 1 else 0
+        std_list[i] = math.sqrt(var)
+
+    return std_list
 
 def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
     print(f"Running strategy {title} {stop_type} stop loss on {len(all_candles)} candles.")
@@ -733,14 +873,15 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
 
     aentries.extend(entries)
 
-    # 5️⃣ Attach ATR to each entry
-    for i in len(entries):
-        entries[i]["atr"] = atr_series[i]
-        entries[i]["std"] = std_series[i]
+    for e in entries:
+        idx = e["candle_index"]  # where the entry occurs
+        e["atr"] = atr_series[idx]
+        e["std"] = std_series[idx]
 
     # === Create Variants ===
     for stop in [10, 20]:
-        contracts = determine_contracts(entries, stop)
+        # contracts = determine_contracts(entries, stop)
+        contracts = determine_contracts_volatility(entries, capital=25000, target_vol=0.10)
         stop_losses = determine_stop_losses(stop_type, entries, stop)
 
         for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]:
@@ -768,13 +909,25 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
 
     print_results(results, num)
 
+def cronometer(func):
 
-if __name__ == "__main__":
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
 
+        elapsed = end - start
+        print(f"\n⏱️ Cronômetro: {elapsed:.4f} segundos")
+        return result
+    return wrapper
+
+@cronometer
+def run():
     # === Load data ===
-    date = int(sys.argv[1])
-    p = sys.argv[2]
-    dataset, days, first_date, last_date = load_raw_data(date, path=p, max_files=None)
+    initial_date = int(sys.argv[1])
+    last_date = int(sys.argv[2])
+    p = sys.argv[3]
+    dataset, days, first_date, last_date = load_raw_data(initial_date, last_date, path=p, max_files=None)
 
 
     freq = "60min"
@@ -825,7 +978,12 @@ if __name__ == "__main__":
     # stop_type = "atr"
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, 12, stop_type, tit)
+    run_strategy(dataset, all_candles, 2, stop_type, tit)
+
+
+if __name__ == "__main__":
+    run()
+    
 
 '''
 Todo
@@ -863,6 +1021,7 @@ Optimize volume profile function        OK
 Generate p&l graph function
 Fit and Test separated (out of sample)  OK
 Fit and Test rolling out of sample      OK
+Add final date
 In Sample Permutation Test
 Permutate_candles function
 Position Sizing with volatility standardization
