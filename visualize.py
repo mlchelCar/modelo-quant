@@ -376,12 +376,12 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date, cont
 
     return l, trade_list
 
-def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
+def visualize_candles(candles, stds, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
     opens, highs, lows, closes, volumes = zip(*[(c.open, c.high, c.low, c.close, c.volume) for c in candles])
     colors = ['green' if closes[i] >= opens[i] else 'red' for i in range(len(candles))]
 
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.7, 0.3])
+    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.60, 0.25, 0.15])
     fig.add_trace(go.Candlestick(x=times, open=opens, high=highs, low=lows, close=closes, name='OHLC'), row=1, col=1)
     fig.add_trace(go.Bar(x=times, y=volumes, name='Volume', marker_color=colors), row=2, col=1)
     
@@ -422,6 +422,10 @@ def visualize_candles(candles, t="Candlestick Chart", moving_averages=None, cros
             fig.add_shape(type="line", x0=A, x1=B, y0=poc, y1=poc, line=dict(color="orange", width=2, dash="dot"), row=1, col=1,)
             # Optional annotation:
             fig.add_annotation(x=B, y=poc, text=f"POC {poc:.5f}", showarrow=False, font=dict(size=10, color="orange"), xanchor="left", yanchor="bottom", row=1, col=1)
+
+    # === STD PANEL (Row 3) ===
+    fig.add_trace(
+        go.Scatter(x=times, y=stds, mode="lines", name="Return STD", line=dict(width=1.5, color="blue")), row=3, col=1)
 
     fig.update_layout(title=t, xaxis_rangeslider_visible=False, height=800, hovermode='x unified', xaxis=dict(type='date'))
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
@@ -675,12 +679,12 @@ def print_best_variant_details(best_variant):
             print(f"Annualized Sharpe: {test['Annualized Sharpe']}")
             print(f"Sharpe 95% CI: {test['Sharpe 95% CI']}")
             print(f"Daily Win Rate (%): {test['Daily Win Rate (%)']}")
-            # print(f"Max Drawdown: {test['Max Drawdown']}")
+            print(f"Max Drawdown: {test['Max Drawdown']}")
             print(f"Profit Factor: {test['Profit Factor']}")
             print(f"Expectancy: {test['Expectancy']}")
             print(f"Average Win: {test['Average Win']:.2f}")
             print(f"Average Loss: {test['Average Loss']:.2f}")
-            # print(f"Total Trades (Global): {test['Total Trades (Global)']}")
+            print(f"Total Trades (Global): {test['Total Trades (Global)']}")
             print(f"Total Days: {test['Total Days']}")
         else:
             print("No TEST data in this rolling window.")
@@ -702,8 +706,9 @@ class Variant():
         #quit()
         self.metrics =  compute_data(self.results, last_date, num, self.trade_list)
 
-def determine_stop_losses(stop_type, entries, stop):
-    if stop_type == "fixed": return [stop] * len(entries)
+def determine_stop_losses(stop_type, entries, v):
+    if stop_type == "fixed": return [v] * len(entries)
+    elif stop_type == "atr": return [v * e.get("atr", 0) for e in entries]
     
 def determine_contracts(entries, stop_size):
     if stop_size == 20: return [5]*len(entries)
@@ -884,13 +889,14 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
         e["std"] = std_series[idx]
 
     # === Create Variants ===
-    for stop in [10, 20]:
+    # for stop in [10, 20]:
+    for stop in [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]:
         # contracts = determine_contracts(entries, stop)
         contracts = determine_contracts_volatility(entries, capital=25000, target_vol=0.10)
         stop_losses = determine_stop_losses(stop_type, entries, stop)
 
         for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]:
-            name = f"{stop}_{r}"
+            name = f"{stop_type}_{stop}_{r}"
 
             rrratios = [r] * len(entries)
             
@@ -902,6 +908,7 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
 
     visualize_candles(
         all_candles,
+        std_series,
         t=title,
         moving_averages=ma_dict,
         cross_up=cross_up,
@@ -985,7 +992,6 @@ def run():
     # === Split data (fit/test) ===
     run_strategy(dataset, all_candles, 12, stop_type, tit)
 
-
 if __name__ == "__main__":
     run()
     
@@ -1026,10 +1032,20 @@ Optimize volume profile function        OK
 Generate p&l graph function
 Fit and Test separated (out of sample)  OK
 Fit and Test rolling out of sample      OK
-Add final date
+Add final date                          OK
 In Sample Permutation Test
 Permutate_candles function
-Position Sizing with volatility standardization
+Position Sizing with volatility standardization OK
+Ploting Standard Deviation              OK
+Stop size based on ATR
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
+
+
+ Skewness
+ Kurtosis
+ Tail risk (VaR, CVaR, extreme-loss cluster)
+ Max drawdown
+ Underwater curve
+
 '''
