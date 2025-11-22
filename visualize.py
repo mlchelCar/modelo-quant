@@ -600,6 +600,184 @@ def compute_data(l, last_date, n, trade_list):
 
     return results
 
+def new_compute_data(l, last_date, n, trade_list):
+    """
+    Compute rolling FIT/TEST metrics for strategy evaluation.
+
+    Parameters
+    ----------
+    l : list[float]
+        daily returns (oldest -> newest)
+    last_date : datetime-like or str
+        final day corresponding to last element of l
+    n : int
+        number of rolling segments
+    trade_list : list[(exit_time, pnl)]
+        list of PnL with exit timestamps
+
+    Returns
+    -------
+    results : list of [fit_metrics_dict, test_metrics_dict]
+    """
+
+    # ---------------------------------------------------------
+    # 1) Make safe immutable copies
+    # ---------------------------------------------------------
+    daily_returns = list(l)
+    t = len(daily_returns)
+    if t == 0:
+        return []
+
+    # ---------------------------------------------------------
+    # 2) Build day-index mapping for daily returns
+    # ---------------------------------------------------------
+    last_ts = pd.to_datetime(last_date)
+    days = pd.date_range(end=last_ts.normalize(), periods=t, freq="D").to_pydatetime().tolist()
+
+    # NOTE: If you exclude weekends, you must also drop returns on weekends.
+    # Keeping 1-to-1 mapping for stability.
+
+    # ---------------------------------------------------------
+    # 3) Split into n contiguous groups (non-destructive)
+    # ---------------------------------------------------------
+    base = t // n
+    extra = t % n
+
+    groups_returns = []
+    groups_days = []
+    pos = 0
+
+    for i in range(n):
+        size = base + (1 if i < extra else 0)
+        groups_returns.append(daily_returns[pos: pos + size])
+        groups_days.append(days[pos: pos + size])
+        pos += size
+
+    # ---------------------------------------------------------
+    # 4) Build FIT/TEST rolling splits
+    #    FIT = concat(groups[:i+1])
+    #    TEST = concat(groups[i+1:])
+    # ---------------------------------------------------------
+    segments = []
+    if n == 1:
+        segments = [
+            (
+                daily_returns, days,  # FIT
+                [], []                # TEST
+            )
+        ]
+    else:
+        for i in range(n - 1):
+            fit_r = [x for g in groups_returns[:i+1] for x in g]
+            fit_d = [x for g in groups_days[:i+1] for x in g]
+            test_r = [x for g in groups_returns[i+1:] for x in g]
+            test_d = [x for g in groups_days[i+1:] for x in g]
+            segments.append((fit_r, fit_d, test_r, test_d))
+
+    # ---------------------------------------------------------
+    # 5) Normalize trade list timestamps
+    # ---------------------------------------------------------
+    normalized_trades = []
+    for exit_time, pnl in trade_list:
+        try:
+            ts = pd.to_datetime(exit_time)
+            normalized_trades.append((ts, float(pnl)))
+        except Exception:
+            continue
+
+    # ---------------------------------------------------------
+    # 6) Compute metrics per segment
+    # ---------------------------------------------------------
+    results = []
+
+    for (fit_r, fit_d, test_r, test_d) in segments:
+        pair = []
+
+        for seg_returns, seg_days in ((fit_r, fit_d), (test_r, test_d)):
+
+            # empty segment (common for last test window)
+            if not seg_returns:
+                pair.append({})
+                continue
+
+            # ---------------------------------------------------------
+            # Determine segment date window
+            # ---------------------------------------------------------
+            start_day = pd.to_datetime(seg_days[0]).date()
+            end_day = pd.to_datetime(seg_days[-1]).date()
+
+            # ---------------------------------------------------------
+            # Filter trades to this window
+            # ---------------------------------------------------------
+            trades_in_segment = [
+                pnl for (ts, pnl) in normalized_trades
+                if ts is not None and start_day <= ts.date() <= end_day
+            ]
+
+            # ---------------------------------------------------------
+            # Sharpe ratio (daily), annualized Sharpe, bootstrap CI
+            # ---------------------------------------------------------
+            sharpe, annualized_sharpe, ci = calculate_sharpe(seg_returns)
+
+            # ---------------------------------------------------------
+            # Daily win rate (%)
+            # ---------------------------------------------------------
+            wins = sum(1 for x in seg_returns if x > 0)
+            winrate = (wins / len(seg_returns)) * 100.0
+
+            # ---------------------------------------------------------
+            # Max Drawdown on cumulative returns
+            # ---------------------------------------------------------
+            cum = np.cumsum(seg_returns)
+            highwater = np.maximum.accumulate(cum)
+            dd = cum - highwater
+            max_dd = float(np.min(dd)) if len(dd) else 0.0
+
+            # ---------------------------------------------------------
+            # Profit Factor, Expectancy, Avg Win/Loss
+            # ---------------------------------------------------------
+            wins_p = [x for x in trades_in_segment if x > 0]
+            losses_p = [x for x in trades_in_segment if x < 0]
+
+            sum_w = sum(wins_p) if wins_p else 0.0
+            sum_l = abs(sum(losses_p)) if losses_p else 0.0
+
+            if sum_l == 0:
+                profit_factor = float("inf") if sum_w > 0 else 0.0
+            else:
+                profit_factor = sum_w / sum_l
+
+            avg_win = sum(wins_p)/len(wins_p) if wins_p else 0.0
+            avg_loss = sum(losses_p)/len(losses_p) if losses_p else 0.0
+            expectancy = np.mean(trades_in_segment) if trades_in_segment else 0.0
+
+            # ---------------------------------------------------------
+            # Store results
+            # ---------------------------------------------------------
+            pair.append({
+                "Trade Returns": trades_in_segment,
+                "Daily Returns": seg_returns,
+
+                "Sharpe Ratio": round(sharpe, 3),
+                "Annualized Sharpe": round(annualized_sharpe, 3),
+                "Sharpe 95% CI": (None if np.isnan(ci[0]) else round(ci[0], 3), None if np.isnan(ci[1]) else round(ci[1], 3)),
+
+                "Daily Win Rate (%)": round(winrate, 2),
+                "Max Drawdown": round(max_dd, 3),
+                "Profit Factor": round(profit_factor, 3) if np.isfinite(profit_factor) else float("inf"),
+                "Expectancy": round(expectancy, 3),
+
+                "Average Win": round(avg_win, 3),
+                "Average Loss": round(avg_loss, 3),
+
+                "Total Trades": len(trades_in_segment),
+                "Total Days": len(seg_returns)
+            })
+
+        results.append(pair)
+
+    return results
+
 def print_results(results, number, best=5):
     # Counter for how many times each variant appears in the top 'best'
     appearance_counter = Counter()
@@ -712,7 +890,7 @@ class Variant():
         
         self.name = n
         self.results, self.trade_list = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
-        self.metrics =  compute_data(self.results, last_date, num, self.trade_list)
+        self.metrics =  new_compute_data(self.results, last_date, num, self.trade_list)
         print(f"Variant {n} created.")
 
 def determine_stop_losses(stop_type, entries, v):
