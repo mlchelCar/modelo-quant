@@ -376,12 +376,12 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date, cont
 
     return l, trade_list
 
-def visualize_candles(candles, stds, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
+def visualize_candles(candles, stds, atr, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
     opens, highs, lows, closes, volumes = zip(*[(c.open, c.high, c.low, c.close, c.volume) for c in candles])
     colors = ['green' if closes[i] >= opens[i] else 'red' for i in range(len(candles))]
 
-    fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.60, 0.25, 0.15])
+    fig = make_subplots(rows=4, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.60, 0.20, 0.1, 0.1])
     fig.add_trace(go.Candlestick(x=times, open=opens, high=highs, low=lows, close=closes, name='OHLC'), row=1, col=1)
     fig.add_trace(go.Bar(x=times, y=volumes, name='Volume', marker_color=colors), row=2, col=1)
     
@@ -424,8 +424,10 @@ def visualize_candles(candles, stds, t="Candlestick Chart", moving_averages=None
             fig.add_annotation(x=B, y=poc, text=f"POC {poc:.5f}", showarrow=False, font=dict(size=10, color="orange"), xanchor="left", yanchor="bottom", row=1, col=1)
 
     # === STD PANEL (Row 3) ===
-    fig.add_trace(
-        go.Scatter(x=times, y=stds, mode="lines", name="Return STD", line=dict(width=1.5, color="blue")), row=3, col=1)
+    fig.add_trace(go.Scatter(x=times, y=stds, mode="lines", name="STD", line=dict(width=1.5, color="blue")), row=3, col=1)
+
+    # === STD PANEL (Row 4) ===
+    fig.add_trace(go.Scatter(x=times, y=atr, mode="lines", name="ATR", line=dict(width=1.5, color="red")), row=4, col=1)
 
     fig.update_layout(title=t, xaxis_rangeslider_visible=False, height=800, hovermode='x unified', xaxis=dict(type='date'))
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
@@ -503,10 +505,12 @@ def calculate_sharpe(returns, annual_risk_free_rate=0.0, trading_days=252):
 def calculate_winrate(returns):
     """Percentage of positive returns."""
     returns = np.array(returns, dtype=float)
-    if len(returns) == 0:
-        return 0.0
+    d = np.sum(returns != 0)
+
+    if len(returns) == 0 or d == 0: return 0.0
     wins = np.sum(returns > 0)
-    return (wins / np.sum(returns != 0)) * 100
+
+    return (wins / d) * 100
 
 def calculate_max_drawdown(returns):
     """Compute max drawdown from cumulative equity curve."""
@@ -536,6 +540,7 @@ def compute_data(l, last_date, n, trade_list):
     """
     Compute all key strategy metrics.
     """
+    l_copy = list(l)  # work on a shallow copy
     t = len(l)
 
     # Group the list into n groups the first having t%n more elements
@@ -563,13 +568,18 @@ def compute_data(l, last_date, n, trade_list):
     results = []
     for p in data:
         r = []
-        for l in p:
-            if l == []: r.append({})
+        for lt in p:
+            if lt == []: r.append({})
             sharpe, annualized_sharpe, ci = calculate_sharpe(l)
             winrate = calculate_winrate(l)
             max_dd = calculate_max_drawdown(l)
             profit_factor = calculate_profit_factor(l)
             expectancy = calculate_expectancy(l)
+
+            if len([i[1] for i in trade_list if i[1] > 0]) == 0: avg_win = 0.0
+            else: avg_win = sum([i[1] for i in trade_list if i[1] > 0]) / len([i[1] for i in trade_list if i[1] > 0])
+            if len([i[1] for i in trade_list if i[1] < 0]) == 0: avg_loss = 0.0
+            else: avg_loss = sum([i[1] for i in trade_list if i[1] < 0]) / len([i[1] for i in trade_list if i[1] < 0])
 
             r.append({
                 "Trade Returns": [i[1] for i in trade_list],
@@ -581,8 +591,8 @@ def compute_data(l, last_date, n, trade_list):
                 "Max Drawdown": round(max_dd, 3),
                 "Profit Factor": round(profit_factor, 3),
                 "Expectancy": round(expectancy, 3),
-                "Average Win": sum([i[1] for i in trade_list if i[1] > 0]) / len([i[1] for i in trade_list if i[1] > 0]),
-                "Average Loss": sum([i[1] for i in trade_list if i[1] < 0]) / len([i[1] for i in trade_list if i[1] < 0]),
+                "Average Win (Global)": avg_win,
+                "Average Loss (Global)": avg_loss,
                 "Total Trades (Global)": len(trade_list),
                 "Total Days": len(l)
             })
@@ -702,14 +712,13 @@ class Variant():
         
         self.name = n
         self.results, self.trade_list = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
-        #print(len(self.results)) # 312 days, 26 per month
-        #quit()
         self.metrics =  compute_data(self.results, last_date, num, self.trade_list)
+        print(f"Variant {n} created.")
 
 def determine_stop_losses(stop_type, entries, v):
     if stop_type == "fixed": return [v] * len(entries)
-    elif stop_type == "atr": return [v * e.get("atr", 0) for e in entries]
-    
+    elif stop_type == "atr": return [round(v * 10000 * e.get("atr", 0)) for e in entries]
+
 def determine_contracts(entries, stop_size):
     if stop_size == 20: return [5]*len(entries)
     if stop_size == 10: return [10]*len(entries)
@@ -750,41 +759,33 @@ def determine_contracts_volatility(entries, capital=100000, target_vol=0.10, tic
     return contracts
 
 def calculate_atr(candles, period=20):
-    """
-    Calculate ATR (Welles Wilder style) for the given candles.
-    Returns a list of ATR values aligned with candle indices.
-    """
-
     n = len(candles)
-    atr = [0.0] * n
-    tr_list = [0.0] * n
+    if n <= period:
+        return [None] * n
 
-    # --- 1) Compute True Range for each candle ---
+    tr = [0.0] * n
+    atr = [None] * n
+
+    # True Range
     for i in range(1, n):
         high = candles[i].high
         low = candles[i].low
         prev_close = candles[i-1].close
 
-        tr = max(
+        tr[i] = max(
             high - low,
             abs(high - prev_close),
             abs(low - prev_close)
         )
-        tr_list[i] = tr
 
-    # --- 2) First ATR value = simple mean of first "period" TRs ---
-    for i in range(period):
-        atr[i] = None  # Not enough data
+    # First ATR = SMA(TR)
+    first_atr = sum(tr[1:period+1]) / period
+    atr[period] = first_atr
 
-    if n > period:
-        first_atr = sum(tr_list[1:period+1]) / period
-        atr[period] = first_atr
-
-        # --- 3) Wilder smoothing formula ---
-        alpha = 1.0 / period
-        for i in range(period+1, n):
-            prev = atr[i-1]
-            atr[i] = (prev * (1 - alpha)) + (tr_list[i] * alpha)
+    # Wilder smoothing
+    alpha = 1 / period
+    for i in range(period + 1, n):
+        atr[i] = atr[i-1] * (1 - alpha) + tr[i] * alpha
 
     return atr
 
@@ -845,9 +846,6 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
     atr_series = calculate_atr(all_candles, period=20)
     std_series = calculate_std(all_candles, period=20)
 
-
-
-   
     # === Build Volume Profiles between crossovers ===
     volume_profiles = []
     all_crosses = sorted(
@@ -889,8 +887,11 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
         e["std"] = std_series[idx]
 
     # === Create Variants ===
-    # for stop in [10, 20]:
-    for stop in [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]:
+    if stop_type == "atr": s = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    elif stop_type == "fixed": s = [10, 20]
+
+    for stop in s:
+
         # contracts = determine_contracts(entries, stop)
         contracts = determine_contracts_volatility(entries, capital=25000, target_vol=0.10)
         stop_losses = determine_stop_losses(stop_type, entries, stop)
@@ -909,6 +910,7 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
     visualize_candles(
         all_candles,
         std_series,
+        atr_series,
         t=title,
         moving_averages=ma_dict,
         cross_up=cross_up,
@@ -986,8 +988,8 @@ def run():
         for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule):
             all_candles.append(t)
 
-    stop_type = "fixed"
-    # stop_type = "atr"
+    # stop_type = "fixed"
+    stop_type = "atr"
 
     # === Split data (fit/test) ===
     run_strategy(dataset, all_candles, 12, stop_type, tit)
@@ -1019,7 +1021,7 @@ Review Trade Closing                    OK
 Review for other possible mistakes      OK
 Compute sharpe using % daily returns    -
 Limit trades to same contract as vp     OK
-Add Metric Average Trade Duration
+Add Metric Average Trade Duration       -
 Add Metric Avg Win                      OK
 Add Metric Avg Loss                     OK
 Add Metric Number of days               OK
@@ -1027,7 +1029,7 @@ Fix metrics Total Trades                OK
 Control Trade Duration                  OK
 Optimize entry function
 Optimize load_data function
-Optimizacao: fazer compute_data para todas variantes ao mesmo tempo
+Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
 Optimize volume profile function        OK
 Generate p&l graph function
 Fit and Test separated (out of sample)  OK
@@ -1037,7 +1039,8 @@ In Sample Permutation Test
 Permutate_candles function
 Position Sizing with volatility standardization OK
 Ploting Standard Deviation              OK
-Stop size based on ATR
+Stop size based on ATR                  OK
+Fix Compute Data
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
 
