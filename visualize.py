@@ -747,8 +747,8 @@ def new_compute_data(l, last_date, n, trade_list):
             else:
                 profit_factor = sum_w / sum_l
 
-            avg_win = sum(wins_p)/len(wins_p) if wins_p else 0.0
-            avg_loss = sum(losses_p)/len(losses_p) if losses_p else 0.0
+            avg_win = sum([1 for x in trades_in_segment if x > 0])/len([1 for x in trades_in_segment if x != 0]) if len([1 for x in trades_in_segment if x != 0]) !=0 else 0.0
+            avg_loss = sum([1 for x in trades_in_segment if x < 0])/len([1 for x in trades_in_segment if x != 0]) if len([1 for x in trades_in_segment if x != 0]) !=0 else 0.0
             expectancy = np.mean(trades_in_segment) if trades_in_segment else 0.0
 
             # ---------------------------------------------------------
@@ -872,7 +872,7 @@ def print_best_variant_details(best_variant):
             print(f"Expectancy: {test['Expectancy']}")
             print(f"Average Win: {test['Average Win']:.2f}")
             print(f"Average Loss: {test['Average Loss']:.2f}")
-            print(f"Total Trades (Global): {test['Total Trades (Global)']}")
+            print(f"Total Trades (Global): {test['Total Trades']}")
             print(f"Total Days: {test['Total Days']}")
         else:
             print("No TEST data in this rolling window.")
@@ -888,10 +888,14 @@ class Variant():
         self.rrratios = rrratios
         self.contracts = c
         
+        self.last_date = last_date
+        self.num = num
         self.name = n
-        self.results, self.trade_list = result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts=c)
-        self.metrics =  new_compute_data(self.results, last_date, num, self.trade_list)
-        print(f"Variant {n} created.")
+    
+    def compute(self):
+        self.results, self.trade_list = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, self.contracts)
+        self.metrics =  new_compute_data(self.results, self.last_date, self.num, self.trade_list)
+        print(f"Variant {self.name} created.")
 
 def determine_stop_losses(stop_type, entries, v):
     if stop_type == "fixed": return [v] * len(entries)
@@ -1085,6 +1089,8 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
             except Exception as e:
                 print(f"⚠️ Error creating Variant {name}: {e}")
 
+    for v in results: v.compute()
+
     visualize_candles(
         all_candles,
         std_series,
@@ -1098,6 +1104,7 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
         sl=0.0001,
         rrr=7
     )
+
 
     print_results(results, num)
 
@@ -1169,8 +1176,10 @@ def run():
     # stop_type = "fixed"
     stop_type = "atr"
 
+    rollings = 12
+
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, 12, stop_type, tit)
+    run_strategy(dataset, all_candles, rollings, stop_type, tit)
 
 if __name__ == "__main__":
     run()
@@ -1197,7 +1206,6 @@ Make Moving Average Fix Clean           OK
 Fix Sharpe Calculation                  OK
 Review Trade Closing                    OK
 Review for other possible mistakes      OK
-Compute sharpe using % daily returns    -
 Limit trades to same contract as vp     OK
 Add Metric Average Trade Duration       -
 Add Metric Avg Win                      OK
@@ -1205,7 +1213,6 @@ Add Metric Avg Loss                     OK
 Add Metric Number of days               OK
 Fix metrics Total Trades                OK
 Control Trade Duration                  OK
-Optimize entry function
 Optimize load_data function
 Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
 Optimize volume profile function        OK
