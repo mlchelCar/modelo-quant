@@ -73,14 +73,14 @@ def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
 
     return {"price_bins": price_bins, "volumes": vol, "A": A, "B": B, "symbol": symbol}
 
-def calculate_poc(vp, return_volume=False):
+def calculate_poc(vp, tick_size, return_volume=False):
     """Return the price of the POC (and optionally the volume)."""
     if vp is None or len(vp["volumes"]) == 0:
         raise ValueError("Invalid or empty volume profile data")
 
     idx_max = np.argmax(vp["volumes"])
     poc_price = round(vp["price_bins"][idx_max],5)
-    poc_price = round(round(poc_price / 0.00005) * 0.00005, 5)
+    poc_price = round(round(poc_price / tick_size) * tick_size, 5)
     poc_volume = vp["volumes"][idx_max]
 
     return (poc_price, poc_volume) if return_volume else poc_price
@@ -262,7 +262,7 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
     return entries
 
 def result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts,
-                        tick_size_in_price=0.00005, tick_value=1.25, costs=1.1*2, slipage_on_losses=0):
+                        tick_size_in_price, tick_value, costs, slipage_on_losses=0):
     results = []
 
     for entry, sl_ticks, rr, c in zip(entries, stop_losses, rrratios, contracts):
@@ -894,12 +894,12 @@ class Variant():
         self.num = num
         self.name = n
     
-    def compute(self):
-        self.results, self.trade_list = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, self.contracts)
+    def compute(self, tick_size, tick_value, costs):
+        self.results, self.trade_list = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, self.contracts, tick_size, tick_value, 2*costs)
         self.metrics =  new_compute_data(self.results, self.last_date, self.num, self.trade_list)
         print(f"Variant {self.name} created.")
 
-def determine_stop_losses(stop_type, entries, v):
+def determine_stop_losses(stop_type, entries, v, tick_size):
     if stop_type == "fixed": return [v] * len(entries)
 
     stops = []
@@ -907,14 +907,14 @@ def determine_stop_losses(stop_type, entries, v):
         for e in entries:
             atr = e.get("atr")
             if atr is None: stops.append(None)
-            else: stops.append(round(v * 10000 * atr))
+            else: stops.append(round(v * atr / tick_size))
         return stops
 
 def determine_contracts(entries, stop_size):
     if stop_size == 20: return [5]*len(entries)
     if stop_size == 10: return [10]*len(entries)
 
-def determine_contracts_volatility(entries, capital=100000, target_vol=0.10, tick_size=0.00005, tick_value=1.25):
+def determine_contracts_volatility(entries, tick_size, tick_value, capital=100000, target_vol=0.10):
     contracts = []
 
     # Convert annual target vol → daily target dollar P&L volatility
@@ -1012,7 +1012,7 @@ def calculate_std(candles, period=20):
 
     return std_list
 
-def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
+def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, costs, title=f"6E 60min "):
     print(f"Running strategy {title} {stop_type} stop loss on {len(all_candles)} candles.")
     print(f"Using {num} rolling windows.")
 
@@ -1062,7 +1062,7 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
             raise ValueError(f"Symbol mismatch: {all_candles[idx_a].symbol} != {all_candles[idx_b].symbol}")
         
         current_symbol = all_candles[idx_a].symbol
-        poc = calculate_poc(vp)
+        poc = calculate_poc(vp, tick_size)
         volume_profiles.append({"A": A, "B": B, "poc": poc, "symbol": current_symbol})
         avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
@@ -1084,8 +1084,8 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
     for stop in s:
 
         # contracts = determine_contracts(entries, stop)
-        contracts = determine_contracts_volatility(entries, capital=25000, target_vol=0.10)
-        stop_losses = determine_stop_losses(stop_type, entries, stop)
+        contracts = determine_contracts_volatility(entries, tick_size, tick_value, capital=25000, target_vol=0.10)
+        stop_losses = determine_stop_losses(stop_type, entries, stop, tick_size)
 
         for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]:
             name = f"{stop_type}_{stop}_{r}"
@@ -1098,7 +1098,7 @@ def run_strategy(dataset, all_candles, num, stop_type, title=f"6E 60min "):
             except Exception as e:
                 print(f"⚠️ Error creating Variant {name}: {e}")
 
-    for v in results: v.compute()
+    for v in results: v.compute(tick_size, tick_value, costs)
 
     visualize_candles(
         all_candles,
@@ -1153,6 +1153,7 @@ def main():
             "6EZ5": ("2025-09-14", "2025-12-14"),
         }
         tit = f"6E {freq} Candlestick Chart"
+        tick_size, tick_value, costs = 0.00005, 6.25, 3.1
 
     if p == "dataM6E":
         symbols = ["M6EH2", "M6EM2", "M6EU2", "M6EZ2","M6EH3", "M6EM3", "M6EU3", "M6EZ3", "M6EH4", "M6EM4", "M6EU4", "M6EZ4", "M6EH5", "M6EM5", "M6EU5", "M6EZ5"]
@@ -1175,6 +1176,7 @@ def main():
             "M6EZ5": ("2025-09-13", "2025-12-13"),
         }
         tit = f"M6E {freq} Candlestick Chart"
+        tick_size, tick_value, costs = 0.00005, 0.625, 0.84
 
     if p == "dataMCL":
         symbols = ["MCLH2", "MCLM2", "MCLU2", "MCLZ2",
@@ -1204,6 +1206,7 @@ def main():
             "MCLZ5": ("2025-09-13", "2025-12-13"),
         }
 
+        tick_size, tick_value, costs = 0.01, 1, 1.1
         tit = f"MCL {freq} Candlestick Chart"
 
 
@@ -1219,7 +1222,7 @@ def main():
     rollings = 12
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, rollings, stop_type, tit)
+    run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs ,title=tit)
 
 if __name__ == "__main__":
     main()
@@ -1265,6 +1268,8 @@ Permutate_candles function
 Position Sizing with volatility standardization OK
 Ploting Standard Deviation              OK
 Stop size based on ATR                  OK
+Fix instrument specifics (tick size, tick value, costs)               OK
+Fix volality in % not being handled
 Fix Compute Data
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
