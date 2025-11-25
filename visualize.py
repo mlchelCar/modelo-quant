@@ -262,7 +262,7 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
     return entries
 
 def result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts,
-                        tick_size_in_price=0.00005, tick_value=1.25, costs=0.84*2, slipage_on_losses=0):
+                        tick_size_in_price=0.00005, tick_value=1.25, costs=1.1*2, slipage_on_losses=0):
     results = []
 
     for entry, sl_ticks, rr, c in zip(entries, stop_losses, rrratios, contracts):
@@ -872,7 +872,7 @@ def print_best_variant_details(best_variant):
             print(f"Expectancy: {test['Expectancy']}")
             print(f"Average Win: {test['Average Win']:.2f}")
             print(f"Average Loss: {test['Average Loss']:.2f}")
-            print(f"Total Trades (Global): {test['Total Trades']}")
+            print(f"Total Trades: {test['Total Trades']}")
             print(f"Total Days: {test['Total Days']}")
         else:
             print("No TEST data in this rolling window.")
@@ -1121,7 +1121,7 @@ def cronometer(func):
     return wrapper
 
 @cronometer
-def run():
+def main():
     # === Load data ===
     initial_date = int(sys.argv[1])
     last_date = int(sys.argv[2])
@@ -1167,6 +1167,37 @@ def run():
         }
         tit = f"M6E {freq} Candlestick Chart"
 
+    if p == "dataMCL":
+        symbols = ["MCLH2", "MCLM2", "MCLU2", "MCLZ2",
+                "MCLH3", "MCLM3", "MCLU3", "MCLZ3",
+                "MCLH4", "MCLM4", "MCLU4", "MCLZ4",
+                "MCLH5", "MCLM5", "MCLU5", "MCLZ5"]
+
+        roll_schedule = {
+            "MCLH2": ("2021-12-11", "2022-03-12"),
+            "MCLM2": ("2022-03-12", "2022-06-11"),
+            "MCLU2": ("2022-06-11", "2022-09-17"),
+            "MCLZ2": ("2022-09-17", "2022-12-17"),
+
+            "MCLH3": ("2022-12-17", "2023-03-11"),
+            "MCLM3": ("2023-03-11", "2023-06-17"),
+            "MCLU3": ("2023-06-17", "2023-09-16"),
+            "MCLZ3": ("2023-09-16", "2023-12-16"),
+
+            "MCLH4": ("2023-12-16", "2024-03-16"),
+            "MCLM4": ("2024-03-16", "2024-06-15"),
+            "MCLU4": ("2024-06-15", "2024-09-14"),
+            "MCLZ4": ("2024-09-14", "2024-12-14"),
+
+            "MCLH5": ("2024-12-14", "2025-03-15"),
+            "MCLM5": ("2025-03-15", "2025-06-14"),
+            "MCLU5": ("2025-06-14", "2025-09-13"),
+            "MCLZ5": ("2025-09-13", "2025-12-13"),
+        }
+
+        tit = f"MCL {freq} Candlestick Chart"
+
+
     # === Build all candles ===
     all_candles = []
     for s in symbols:
@@ -1182,7 +1213,7 @@ def run():
     run_strategy(dataset, all_candles, rollings, stop_type, tit)
 
 if __name__ == "__main__":
-    run()
+    main()
     
 
 '''
