@@ -14,7 +14,7 @@
 
 
 - Resolver situacao dos simbolos          OK
-- Calcular Moving Average Crossings       OK
+- calcular Moving Average Crossings       OK
 - Calcular Volume Profile                 OK
 - Plotar POC                              OK
 - Add entry signals                       OK
@@ -29,19 +29,29 @@
 - Fix moving Average  Mistake             OK
 - Make Moving Average Fix Clean           OK
 - Fix Sharpe Calculation                  OK
-- Review Trade Closing
+- Review Trade Closing                    OK
 - Review for other possible mistakes      OK
-- Compute sharpe using % daily returns 
 - Limit trades to same contract as vp     OK
-- Add Metric Average Trade Duration
-- Add Metric Avg Win
-- Add Metric Avg Loss
+- Add Metric Average Trade Duration       -
+- Add Metric Avg Win                      OK
+- Add Metric Avg Loss                     OK
 - Add Metric Number of days               OK
 - Fix metrics Total Trades                OK
 - Control Trade Duration                  OK
 - Optimize load_data function
+- Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
 - Optimize volume profile function        OK
 - Generate p&l graph function
 - Fit and Test separated (out of sample)  OK
 - Fit and Test rolling out of sample      OK
+- Add final date                          OK
 - In Sample Permutation Test
+- Permutate_candles function
+- Position Sizing with volatility standardization OK
+- Ploting Standard Deviation              OK
+- Stop size based on ATR                  OK
+- Fix instrument specifics (tick size, tick value, costs)               OK
+- Fix volality in % not being handled
+- Fix Compute Data
+Tralling Stop instead of take profit
+Position Sizing with Forecast Value
