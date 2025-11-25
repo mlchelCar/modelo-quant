@@ -266,10 +266,12 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date, cont
     results = []
 
     for entry, sl_ticks, rr, c in zip(entries, stop_losses, rrratios, contracts):
-
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
+
+        if sl_ticks is None:
+            continue
 
         if entry_time.tzinfo is not None:
             entry_time = entry_time.tz_convert(None)
@@ -899,7 +901,14 @@ class Variant():
 
 def determine_stop_losses(stop_type, entries, v):
     if stop_type == "fixed": return [v] * len(entries)
-    elif stop_type == "atr": return [round(v * 10000 * e.get("atr", 0)) for e in entries]
+
+    stops = []
+    if stop_type == "atr":
+        for e in entries:
+            atr = e.get("atr")
+            if atr is None: stops.append(None)
+            else: stops.append(round(v * 10000 * atr))
+        return stops
 
 def determine_contracts(entries, stop_size):
     if stop_size == 20: return [5]*len(entries)
