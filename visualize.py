@@ -922,14 +922,15 @@ def determine_contracts_volatility(entries, tick_size, tick_value, capital=10000
 
     for e in entries:
 
-        std = e.get("std", None)  # must be DAILY std (in price units)
+        std = e.get("std", None)
+        price = e.get("entry_price")
 
         if std is None or std <= 0:
             contracts.append(0)
             continue
 
         # Convert daily price std → ticks
-        std_ticks = std / tick_size
+        std_ticks = std * price/ tick_size
 
         # Convert ticks → daily $ P&L volatility per contract
         dollar_vol_per_contract = std_ticks * tick_value
@@ -1268,8 +1269,8 @@ Permutate_candles function
 Position Sizing with volatility standardization OK
 Ploting Standard Deviation              OK
 Stop size based on ATR                  OK
-Fix instrument specifics (tick size, tick value, costs)               OK
-Fix volality in % not being handled
+Fix instrument specifics(tick size, tick value, costs)               OK
+Fix volality in % not being handled     OK
 Fix Compute Data
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
