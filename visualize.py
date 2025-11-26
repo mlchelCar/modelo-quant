@@ -275,7 +275,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
         if sl_ticks is None or c == 0:
             continue
         contracts.append(c)
-        
+
         if entry_time.tzinfo is not None:
             entry_time = entry_time.tz_convert(None)
 
@@ -946,7 +946,7 @@ def determine_contracts_volatility(e, tick_size, tick_value, capital, target_vol
 
     return pos
 
-def calculate_atr(candles, period=20):
+def calculate_atr(candles, period=20, mult=24):
     n = len(candles)
     if n <= period:
         return [None] * n
@@ -973,11 +973,11 @@ def calculate_atr(candles, period=20):
     # Wilder smoothing
     alpha = 1 / period
     for i in range(period + 1, n):
-        atr[i] = atr[i-1] * (1 - alpha) + tr[i] * alpha
+        atr[i] = atr[i-1] * (1 - alpha) + tr[i] * alpha * math.sqrt(mult)
 
     return atr
 
-def calculate_std(candles, period=20):
+def calculate_std(candles, period=20, mult=24):
 
     """
     Calculate rolling standard deviation of returns over 'period'.
@@ -1005,7 +1005,7 @@ def calculate_std(candles, period=20):
 
         # sample variance (ddof=1)
         var = sum((x - mean) ** 2 for x in window) / (period - 1) if period > 1 else 0
-        std_list[i] = math.sqrt(var)
+        std_list[i] = math.sqrt(var) * math.sqrt(mult)
 
     return std_list
 
@@ -1133,7 +1133,7 @@ def main():
     dataset, days, first_date, last_date = load_raw_data(initial_date, last_date, path=p, max_files=None)
 
 
-    freq = "60min"
+    freq = "60min" #If we change this we must change the std calculation
 
     if p == "data6E":
         symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
@@ -1226,57 +1226,55 @@ if __name__ == "__main__":
 '''
 Todo
 
-Resolver situacao dos simbolos          OK
-calcular Moving Average Crossings       OK
-Calcular Volume Profile                 OK
-Plotar POC                              OK
-Add entry signals                       OK
-Fix decide_entry_direction              OK
-Calculate result from each entrie       OK
-Fix symbol with duplicate entries       OK
-Fix sharpe calculation                  OK
-Add Costs                               OK
-Add Slippage                            OK
-Plot Entries stop and tp                OK
-Fix POC step (0.0005)                   OK
-Fix moving Average  Mistake             OK
-Make Moving Average Fix Clean           OK
-Fix Sharpe Calculation                  OK
-Review Trade Closing                    OK
-Review for other possible mistakes      OK
-Limit trades to same contract as vp     OK
-Add Metric Average Trade Duration       -
-Add Metric Avg Win                      OK
-Add Metric Avg Loss                     OK
-Add Metric Number of days               OK
-Fix metrics Total Trades                OK
-Control Trade Duration                  OK
+Resolver situacao dos simbolos                                       OK
+calcular Moving Average Crossings                                    OK
+Calcular Volume Profile                                              OK
+Plotar POC                                                           OK
+Add entry signals                                                    OK
+Fix decide_entry_direction                                           OK
+Calculate result from each entrie                                    OK
+Fix symbol with duplicate entries                                    OK
+Fix sharpe calculation                                               OK
+Add Costs                                                            OK
+Add Slippage                                                         OK
+Plot Entries stop and tp                                             OK
+Fix POC step (0.0005)                                                OK
+Fix moving Average  Mistake                                          OK
+Make Moving Average Fix Clean                                        OK
+Fix Sharpe Calculation                                               OK
+Review Trade Closing                                                 OK
+Review for other possible mistakes                                   OK
+Limit trades to same contract as vp                                  OK
+Add Metric Average Trade Duration                                    -
+Add Metric Avg Win                                                   OK
+Add Metric Avg Loss                                                  OK
+Add Metric Number of days                                            OK
+Fix metrics Total Trades                                             OK
+Control Trade Duration                                               OK
 Optimize load_data function
 Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
-Optimize volume profile function        OK
+Optimizar memoria
+Optimize volume profile function                                     OK
 Generate p&l graph function
-Fit and Test separated (out of sample)  OK
-Fit and Test rolling out of sample      OK
-Add final date                          OK
-Returns in %                            OK
-Update Capital with trade results       OK
+Fit and Test separated (out of sample)                               OK
+Fit and Test rolling out of sample                                   OK
+Add final date                                                       OK
+Returns in %                                                         OK
+Update Capital with trade results                                    OK
 In Sample Permutation Test
 Permutate_candles function
 Position Sizing with volatility standardization OK
-Ploting Standard Deviation              OK
-Stop size based on ATR                  OK
+Ploting Standard Deviation                                           OK
+Stop size based on ATR                                               OK
 Fix instrument specifics(tick size, tick value, costs)               OK
-Fix volality in % not being handled     OK
-Handle 0 contracts situations
+Fix volality in % not being handled                                  OK
+Handle 0 contracts situations                                        OK
+Trades bleeding across Contracts Add Switch
+Volatility scaling: you’re treating 1-hour STD as daily STD          OK
+Using Daily ATR                                                      OK
+Remove Zero-return days
+Avg Win / Avg Loss are wrong
 Fix Compute Data
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
-
-
- Skewness
- Kurtosis
- Tail risk (VaR, CVaR, extreme-loss cluster)
- Max drawdown
- Underwater curve
-
 '''
