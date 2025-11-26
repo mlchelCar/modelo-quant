@@ -264,6 +264,7 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
 def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
                         tick_size_in_price, tick_value, costs, capital, slipage_on_losses=0):
     results = []
+    contracts = []
 
     for entry, sl_ticks, rr in zip(entries, stop_losses, rrratios):
         c = determine_contracts_volatility(entry, tick_size_in_price, tick_value, capital, target_vol=0.10)
@@ -273,7 +274,8 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
 
         if sl_ticks is None or c == 0:
             continue
-
+        contracts.append(c)
+        
         if entry_time.tzinfo is not None:
             entry_time = entry_time.tz_convert(None)
 
@@ -378,7 +380,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
     l = [i for i in daily_returns.values()]
     l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns
 
-    return l, trade_list
+    return l, trade_list, contracts
 
 def visualize_candles(candles, stds, atr, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
@@ -896,7 +898,7 @@ class Variant():
         self.name = n
     
     def compute(self, tick_size, tick_value, costs, capital):
-        self.results, self.trade_list = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital)
+        self.results, self.trade_list, self.contracts = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital)
         self.metrics =  new_compute_data(self.results, self.last_date, self.num, self.trade_list)
         print(f"Variant {self.name} created.")
 
