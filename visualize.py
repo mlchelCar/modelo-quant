@@ -261,16 +261,17 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios, last_date, contracts,
-                        tick_size_in_price, tick_value, costs, slipage_on_losses=0):
+def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
+                        tick_size_in_price, tick_value, costs, capital, slipage_on_losses=0):
     results = []
 
-    for entry, sl_ticks, rr, c in zip(entries, stop_losses, rrratios, contracts):
+    for entry, sl_ticks, rr in zip(entries, stop_losses, rrratios):
+        c = determine_contracts_volatility(entry, tick_size_in_price, tick_value, capital, target_vol=0.10)
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
 
-        if sl_ticks is None:
+        if sl_ticks is None or c == 0:
             continue
 
         if entry_time.tzinfo is not None:
@@ -348,7 +349,8 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date, cont
 
             result = ticks_pnl * tick_value * c - costs * c
 
-        results.append((entry_time, result))
+        results.append((entry_time, result/capital))
+        capital += result
 
     # Ensure trade_list is sorted chronologically
     trade_list = sorted(results, key=lambda x: x[0])
@@ -883,19 +885,18 @@ def make_graphs(variant):
     pass
 
 class Variant():
-    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num, c):
+    def __init__(self, entries, candles, stop_losses, rrratios, last_date, n, num):
         self.entries = entries
         self.candles = candles
         self.stop_losses = stop_losses
         self.rrratios = rrratios
-        self.contracts = c
         
         self.last_date = last_date
         self.num = num
         self.name = n
     
-    def compute(self, tick_size, tick_value, costs):
-        self.results, self.trade_list = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, self.contracts, tick_size, tick_value, 2*costs)
+    def compute(self, tick_size, tick_value, costs, capital):
+        self.results, self.trade_list = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital)
         self.metrics =  new_compute_data(self.results, self.last_date, self.num, self.trade_list)
         print(f"Variant {self.name} created.")
 
@@ -914,41 +915,34 @@ def determine_contracts(entries, stop_size):
     if stop_size == 20: return [5]*len(entries)
     if stop_size == 10: return [10]*len(entries)
 
-def determine_contracts_volatility(entries, tick_size, tick_value, capital=100000, target_vol=0.10):
-    contracts = []
-
+def determine_contracts_volatility(e, tick_size, tick_value, capital, target_vol=0.10):
     # Convert annual target vol → daily target dollar P&L volatility
     target_daily_vol = (capital * target_vol) / math.sqrt(252)
 
-    for e in entries:
 
-        std = e.get("std", None)
-        price = e.get("entry_price")
+    std = e.get("std", None)
+    price = e.get("entry_price")
 
-        if std is None or std <= 0:
-            contracts.append(0)
-            continue
+    if std is None or std <= 0:
+        return 0
 
-        # Convert daily price std → ticks
-        std_ticks = std * price/ tick_size
+    # Convert daily price std → ticks
+    std_ticks = std * price/ tick_size
 
-        # Convert ticks → daily $ P&L volatility per contract
-        dollar_vol_per_contract = std_ticks * tick_value
+    # Convert ticks → daily $ P&L volatility per contract
+    dollar_vol_per_contract = std_ticks * tick_value
 
-        # avoid division by zero
-        if dollar_vol_per_contract <= 0:
-            contracts.append(0)
-            continue
+    # avoid division by zero
+    if dollar_vol_per_contract <= 0:
+        return 0
 
-        # Volatility-based sizing
-        pos = target_daily_vol / dollar_vol_per_contract
+    # Volatility-based sizing
+    pos = target_daily_vol / dollar_vol_per_contract
 
-        # round down to whole contracts
-        pos = int(max(0, math.floor(pos)))
+    # round down to whole contracts
+    pos = int(max(0, math.floor(pos)))
 
-        contracts.append(pos)
-
-    return contracts
+    return pos
 
 def calculate_atr(candles, period=20):
     n = len(candles)
@@ -1013,7 +1007,7 @@ def calculate_std(candles, period=20):
 
     return std_list
 
-def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, costs, title=f"6E 60min "):
+def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, costs, title=f"6E 60min ", starting_capital=100000):
     print(f"Running strategy {title} {stop_type} stop loss on {len(all_candles)} candles.")
     print(f"Using {num} rolling windows.")
 
@@ -1084,8 +1078,6 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
 
     for stop in s:
 
-        # contracts = determine_contracts(entries, stop)
-        contracts = determine_contracts_volatility(entries, tick_size, tick_value, capital=25000, target_vol=0.10)
         stop_losses = determine_stop_losses(stop_type, entries, stop, tick_size)
 
         for r in [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]:
@@ -1094,12 +1086,12 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
             rrratios = [r] * len(entries)
             
             try:
-                variant = Variant(entries, all_candles, stop_losses, rrratios, dt, name, num, c=contracts)
+                variant = Variant(entries, all_candles, stop_losses, rrratios, dt, name, num)
                 results.append(variant)
             except Exception as e:
                 print(f"⚠️ Error creating Variant {name}: {e}")
 
-    for v in results: v.compute(tick_size, tick_value, costs)
+    for v in results: v.compute(tick_size, tick_value, costs, starting_capital)
 
     visualize_candles(
         all_candles,
@@ -1264,6 +1256,8 @@ Generate p&l graph function
 Fit and Test separated (out of sample)  OK
 Fit and Test rolling out of sample      OK
 Add final date                          OK
+Returns in %                            OK
+Update Capital with trade results       OK
 In Sample Permutation Test
 Permutate_candles function
 Position Sizing with volatility standardization OK
@@ -1271,6 +1265,7 @@ Ploting Standard Deviation              OK
 Stop size based on ATR                  OK
 Fix instrument specifics(tick size, tick value, costs)               OK
 Fix volality in % not being handled     OK
+Handle 0 contracts situations
 Fix Compute Data
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
