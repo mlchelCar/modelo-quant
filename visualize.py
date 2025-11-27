@@ -380,7 +380,11 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
     l = [i for i in daily_returns.values()]
     l = [i for i in daily_returns.values()] if isinstance(daily_returns, dict) else daily_returns
 
-    return l, trade_list, contracts
+    # --- NEW: ensure chronological order ---
+    dates = sorted(daily_returns.keys())              # oldest → newest
+    l = [daily_returns[d] for d in dates]             # aligned returns
+
+    return l, dates, trade_list, contracts
 
 def visualize_candles(candles, stds, atr, t="Candlestick Chart", moving_averages=None, cross_up=None, cross_down=None, volume_profiles=None, entries=None, sl=None, rrr=None):
     times = [pd.Timestamp(c.time).tz_localize(None) for c in candles]
@@ -542,71 +546,82 @@ def calculate_expectancy(returns):
         return 0.0
     return np.mean(returns)
 
-def compute_data(l, last_date, n, trade_list):
+def calculate_sortino(returns, risk_free=0.0):
     """
-    Compute all key strategy metrics.
+    Sortino Ratio: reward relative to downside volatility.
+    returns: list of daily returns (floats)
+    risk_free: daily risk-free rate (default 0)
     """
-    l_copy = list(l)  # work on a shallow copy
-    t = len(l)
 
-    # Group the list into n groups the first having t%n more elements
-    d = []
-    r = t % n
-    for i in range(n):
-        v = []
-        for j in range((t//n)+r):
-            v.append(l.pop(0))
-        r = 0
-        d.append(v)
-    
-    data = []
-    for i in range(len(d)-1):
-        l_fit = d[:i+1]
-        l_test = d[i+1:]
+    if len(returns) == 0:
+        return 0.0
 
-        l_fit = [item for sublist in l_fit for item in sublist]
-        l_test = [item for sublist in l_test for item in sublist]
-        data.append([l_fit, l_test])
-        
-    if n == 1: data = [ [d[0], []] ]
+    downside = [r - risk_free for r in returns if r < risk_free]
 
+    if len(downside) == 0:
+        return float("inf")   # no downside => perfect system
 
-    results = []
-    for p in data:
-        r = []
-        for lt in p:
-            if lt == []: r.append({})
-            sharpe, annualized_sharpe, ci = calculate_sharpe(l)
-            winrate = calculate_winrate(l)
-            max_dd = calculate_max_drawdown(l)
-            profit_factor = calculate_profit_factor(l)
-            expectancy = calculate_expectancy(l)
+    downside_std = np.std(downside, ddof=1)
 
-            if len([i[1] for i in trade_list if i[1] > 0]) == 0: avg_win = 0.0
-            else: avg_win = sum([i[1] for i in trade_list if i[1] > 0]) / len([i[1] for i in trade_list if i[1] > 0])
-            if len([i[1] for i in trade_list if i[1] < 0]) == 0: avg_loss = 0.0
-            else: avg_loss = sum([i[1] for i in trade_list if i[1] < 0]) / len([i[1] for i in trade_list if i[1] < 0])
+    if downside_std == 0:
+        return float("inf")
 
-            r.append({
-                "Trade Returns": [i[1] for i in trade_list],
-                'Daily Returns': l,
-                "Sharpe Ratio": round(sharpe, 3),
-                "Annualized Sharpe": round(annualized_sharpe, 3),
-                "Sharpe 95% CI": (round(ci[0], 3), round(ci[1], 3)),
-                "Daily Win Rate (%)": round(winrate, 2),
-                "Max Drawdown": round(max_dd, 3),
-                "Profit Factor": round(profit_factor, 3),
-                "Expectancy": round(expectancy, 3),
-                "Average Win (Global)": avg_win,
-                "Average Loss (Global)": avg_loss,
-                "Total Trades (Global)": len(trade_list),
-                "Total Days": len(l)
-            })
-        results.append(r)
+    mean_excess = np.mean(returns) - risk_free
 
-    return results
+    return mean_excess / downside_std
 
-def new_compute_data(l, last_date, n, trade_list):
+def calculate_max_drawdown(returns):
+    """
+    Max Drawdown using compound equity curve.
+    returns: list of daily returns (floats)
+    """
+
+    if len(returns) == 0:
+        return 0.0
+
+    equity = np.cumprod(1 + np.array(returns))      # correct compounding
+    highwater = np.maximum.accumulate(equity)
+    dd = (highwater - equity) / highwater           # normalized drawdown
+    max_dd = float(np.max(dd))
+
+    return max_dd
+
+def calculate_cagr(returns):
+    """
+    CAGR based on daily returns.
+    returns: list of daily returns (floats)
+    """
+
+    t = len(returns)
+    if t == 0:
+        return 0.0
+
+    years = t / 252
+
+    equity = np.cumprod(1 + np.array(returns))
+    final_equity = equity[-1]
+
+    if years <= 0 or final_equity <= 0:
+        return 0.0
+
+    cagr = final_equity ** (1 / years) - 1
+    return float(cagr)
+
+def calculate_calmar(returns):
+    """
+    Calmar Ratio = CAGR / Max Drawdown.
+    returns: list of daily returns (floats)
+    """
+
+    cagr = calculate_cagr(returns)
+    max_dd = calculate_max_drawdown(returns)
+
+    if max_dd == 0:
+        return float("inf")
+
+    return float(cagr / max_dd)
+
+def compute_data(l, dates, n, trade_list):
     """
     Compute rolling FIT/TEST metrics for strategy evaluation.
 
@@ -614,8 +629,8 @@ def new_compute_data(l, last_date, n, trade_list):
     ----------
     l : list[float]
         daily returns (oldest -> newest)
-    last_date : datetime-like or str
-        final day corresponding to last element of l
+    dates : list[datetime.date]
+        matching dates for each daily return (oldest -> newest)
     n : int
         number of rolling segments
     trade_list : list[(exit_time, pnl)]
@@ -627,24 +642,17 @@ def new_compute_data(l, last_date, n, trade_list):
     """
 
     # ---------------------------------------------------------
-    # 1) Make safe immutable copies
+    # 1) Immutable copies
     # ---------------------------------------------------------
     daily_returns = list(l)
+    day_list = list(dates)
     t = len(daily_returns)
+
     if t == 0:
         return []
 
     # ---------------------------------------------------------
-    # 2) Build day-index mapping for daily returns
-    # ---------------------------------------------------------
-    last_ts = pd.to_datetime(last_date)
-    days = pd.date_range(end=last_ts.normalize(), periods=t, freq="D").to_pydatetime().tolist()
-
-    # NOTE: If you exclude weekends, you must also drop returns on weekends.
-    # Keeping 1-to-1 mapping for stability.
-
-    # ---------------------------------------------------------
-    # 3) Split into n contiguous groups (non-destructive)
+    # 2) Split into n contiguous groups using the REAL dates
     # ---------------------------------------------------------
     base = t // n
     extra = t % n
@@ -655,25 +663,18 @@ def new_compute_data(l, last_date, n, trade_list):
 
     for i in range(n):
         size = base + (1 if i < extra else 0)
-        groups_returns.append(daily_returns[pos: pos + size])
-        groups_days.append(days[pos: pos + size])
+        groups_returns.append(daily_returns[pos:pos+size])
+        groups_days.append(day_list[pos:pos+size])
         pos += size
 
     # ---------------------------------------------------------
-    # 4) Build FIT/TEST rolling splits
-    #    FIT = concat(groups[:i+1])
-    #    TEST = concat(groups[i+1:])
+    # 3) Build rolling FIT/TEST splits
     # ---------------------------------------------------------
     segments = []
     if n == 1:
-        segments = [
-            (
-                daily_returns, days,  # FIT
-                [], []                # TEST
-            )
-        ]
+        segments = [(daily_returns, day_list, [], [])]
     else:
-        for i in range(n - 1):
+        for i in range(n-1):
             fit_r = [x for g in groups_returns[:i+1] for x in g]
             fit_d = [x for g in groups_days[:i+1] for x in g]
             test_r = [x for g in groups_returns[i+1:] for x in g]
@@ -681,7 +682,7 @@ def new_compute_data(l, last_date, n, trade_list):
             segments.append((fit_r, fit_d, test_r, test_d))
 
     # ---------------------------------------------------------
-    # 5) Normalize trade list timestamps
+    # 4) Normalize trade timestamps
     # ---------------------------------------------------------
     normalized_trades = []
     for exit_time, pnl in trade_list:
@@ -692,92 +693,88 @@ def new_compute_data(l, last_date, n, trade_list):
             continue
 
     # ---------------------------------------------------------
-    # 6) Compute metrics per segment
+    # 5) Compute metrics per segment
     # ---------------------------------------------------------
     results = []
 
     for (fit_r, fit_d, test_r, test_d) in segments:
         pair = []
 
+        # FIT then TEST
         for seg_returns, seg_days in ((fit_r, fit_d), (test_r, test_d)):
 
-            # empty segment (common for last test window)
             if not seg_returns:
                 pair.append({})
                 continue
 
-            # ---------------------------------------------------------
-            # Determine segment date window
-            # ---------------------------------------------------------
-            start_day = pd.to_datetime(seg_days[0]).date()
-            end_day = pd.to_datetime(seg_days[-1]).date()
+            # Real start/end date
+            start_day = seg_days[0]
+            end_day   = seg_days[-1]
 
-            # ---------------------------------------------------------
-            # Filter trades to this window
-            # ---------------------------------------------------------
+            # Filter trades by REAL date window
             trades_in_segment = [
                 pnl for (ts, pnl) in normalized_trades
-                if ts is not None and start_day <= ts.date() <= end_day
+                if start_day <= ts.date() <= end_day
             ]
 
-            # ---------------------------------------------------------
-            # Sharpe ratio (daily), annualized Sharpe, bootstrap CI
-            # ---------------------------------------------------------
+            # Sharpe + CI
             sharpe, annualized_sharpe, ci = calculate_sharpe(seg_returns)
+            sortino = calculate_sortino(seg_returns)
+            max_dd = calculate_max_drawdown(seg_returns)
+            cagr = calculate_cagr(seg_returns)
+            calmar = calculate_calmar(seg_returns)
 
             # ---------------------------------------------------------
-            # Daily win rate (%)
+            # Trade stats
             # ---------------------------------------------------------
-            wins = sum(1 for x in seg_returns if x > 0)
-            winrate = (wins / len(seg_returns)) * 100.0
+            wins = [x for x in trades_in_segment if x > 0]
+            losses = [x for x in trades_in_segment if x < 0]
 
-            # ---------------------------------------------------------
-            # Max Drawdown on cumulative returns
-            # ---------------------------------------------------------
-            cum = np.cumsum(seg_returns)
-            highwater = np.maximum.accumulate(cum)
-            dd = cum - highwater
-            max_dd = float(np.min(dd)) if len(dd) else 0.0
-
-            # ---------------------------------------------------------
-            # Profit Factor, Expectancy, Avg Win/Loss
-            # ---------------------------------------------------------
-            wins_p = [x for x in trades_in_segment if x > 0]
-            losses_p = [x for x in trades_in_segment if x < 0]
-
-            sum_w = sum(wins_p) if wins_p else 0.0
-            sum_l = abs(sum(losses_p)) if losses_p else 0.0
+            sum_w = sum(wins)
+            sum_l = abs(sum(losses))
+            winrate = len(wins) / len(trades_in_segment) if trades_in_segment else 0.0
+            avg_w = sum_w / len(wins) if wins else 0.0
+            avg_l = sum_l / len(losses) if losses else 0.0
 
             if sum_l == 0:
                 profit_factor = float("inf") if sum_w > 0 else 0.0
             else:
                 profit_factor = sum_w / sum_l
 
-            avg_win = sum([1 for x in trades_in_segment if x > 0])/len([1 for x in trades_in_segment if x != 0]) if len([1 for x in trades_in_segment if x != 0]) !=0 else 0.0
-            avg_loss = sum([1 for x in trades_in_segment if x < 0])/len([1 for x in trades_in_segment if x != 0]) if len([1 for x in trades_in_segment if x != 0]) !=0 else 0.0
             expectancy = np.mean(trades_in_segment) if trades_in_segment else 0.0
 
             # ---------------------------------------------------------
-            # Store results
+            # Store metrics
             # ---------------------------------------------------------
             pair.append({
                 "Trade Returns": trades_in_segment,
                 "Daily Returns": seg_returns,
+                "Start Date": start_day,
+                "End Date": end_day,
 
                 "Sharpe Ratio": round(sharpe, 3),
                 "Annualized Sharpe": round(annualized_sharpe, 3),
-                "Sharpe 95% CI": (None if np.isnan(ci[0]) else round(ci[0], 3), None if np.isnan(ci[1]) else round(ci[1], 3)),
+                "Sharpe 95% CI": (
+                    None if np.isnan(ci[0]) else round(ci[0], 3),
+                    None if np.isnan(ci[1]) else round(ci[1], 3)
+                ),
+                "Sortino Ratio": float("inf") if not np.isfinite(sortino) else round(sortino, 3),
+                "CAGR": float("inf") if not np.isfinite(cagr) else round(cagr, 3),
+                "Calmar Ratio": float("inf") if not np.isfinite(calmar) else round(calmar, 3),
 
-                "Daily Win Rate (%)": round(winrate, 2),
+                "Daily Win Rate (%)": round(winrate, 3),
                 "Max Drawdown": round(max_dd, 3),
-                "Profit Factor": round(profit_factor, 3) if np.isfinite(profit_factor) else float("inf"),
+                "Profit Factor": (
+                    float("inf") if not np.isfinite(profit_factor)
+                    else round(profit_factor, 3)
+                ),
                 "Expectancy": round(expectancy, 3),
 
-                "Average Win": round(avg_win, 3),
-                "Average Loss": round(avg_loss, 3),
+                "Average Win": round(avg_w, 3),
+                "Average Loss": round(avg_l, 3),
 
                 "Total Trades": len(trades_in_segment),
-                "Total Days": len(seg_returns)
+                "Total Days": len(seg_returns),
             })
 
         results.append(pair)
@@ -870,16 +867,27 @@ def print_best_variant_details(best_variant):
         # =============================
         print("\n--- TEST Metrics ---")
         if test != {}:
-            print(f"Annualized Sharpe: {test['Annualized Sharpe']}")
-            print(f"Sharpe 95% CI: {test['Sharpe 95% CI']}")
-            print(f"Daily Win Rate (%): {test['Daily Win Rate (%)']}")
-            print(f"Max Drawdown: {test['Max Drawdown']}")
-            print(f"Profit Factor: {test['Profit Factor']}")
-            print(f"Expectancy: {test['Expectancy']}")
-            print(f"Average Win: {test['Average Win']:.2f}")
-            print(f"Average Loss: {test['Average Loss']:.2f}")
-            print(f"Total Trades: {test['Total Trades']}")
-            print(f"Total Days: {test['Total Days']}")
+            print(f"Start Date: {test.get('Start Date', 'N/A')}")
+            print(f"End Date:   {test.get('End Date','N/A')}")
+
+            print(f"Sharpe Ratio:        {test['Sharpe Ratio']}")
+            print(f"Annualized Sharpe:   {test['Annualized Sharpe']}")
+            print(f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
+            print(f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
+            print(f"CAGR:                {test.get('CAGR', 'N/A')}")
+
+            print(f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
+            print(f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
+            print(f"Max Drawdown:        {test['Max Drawdown']}")
+
+            print(f"Profit Factor:       {test['Profit Factor']}")
+            print(f"Expectancy:          {test['Expectancy']}")
+            print(f"Average Win:         {test['Average Win']:.2f}")
+            print(f"Average Loss:        {test['Average Loss']:.2f}")
+
+            # print(f"Total Trades:        {test['Total Trades']}")
+            # print(f"Total Days:          {test['Total Days']}")
+
         else:
             print("No TEST data in this rolling window.")
 
@@ -898,8 +906,8 @@ class Variant():
         self.name = n
     
     def compute(self, tick_size, tick_value, costs, capital):
-        self.results, self.trade_list, self.contracts = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital)
-        self.metrics =  new_compute_data(self.results, self.last_date, self.num, self.trade_list)
+        self.results, dates, self.trade_list, self.contracts = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital)
+        self.metrics =  compute_data(self.results, dates, self.last_date, self.num, self.trade_list)
         print(f"Variant {self.name} created.")
 
 def determine_stop_losses(stop_type, entries, v, tick_size):
@@ -1263,7 +1271,7 @@ Returns in %                                                         OK
 Update Capital with trade results                                    OK
 In Sample Permutation Test
 Permutate_candles function
-Position Sizing with volatility standardization OK
+Position Sizing with volatility standardization                      OK
 Ploting Standard Deviation                                           OK
 Stop size based on ATR                                               OK
 Fix instrument specifics(tick size, tick value, costs)               OK
@@ -1273,8 +1281,8 @@ Trades bleeding across Contracts Add Switch
 Volatility scaling: you’re treating 1-hour STD as daily STD          OK
 Using Daily ATR                                                      OK
 Remove Zero-return days
-Avg Win / Avg Loss are wrong
-Fix Compute Data
+Avg Win / Avg Loss are wrong                                         OK
+Fix Compute Data                                                     OK
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
 '''
