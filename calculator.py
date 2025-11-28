@@ -4,7 +4,7 @@ import math
 def determine_stop_losses(atr, tick_size, v= 0.25):
         return round(v * math.sqrt(24) * atr / tick_size)
 
-def determine_contracts_volatility(std, tick_size, tick_value, last_price, capital=300, target_vol=0.6):
+def determine_contracts_volatility(std, tick_size, tick_value, last_price, capital=1000, target_vol=1):
 
     # Convert annual target vol → daily target dollar P&L volatility
     target_daily_vol = (capital * target_vol) / math.sqrt(252)
@@ -37,10 +37,13 @@ tick_size, tick_value = 0.00005, 0.625
 atr = float(sys.argv[1])
 std = float(sys.argv[2])
 last_price = float(sys.argv[3])
+capital = float(sys.argv[4])
+target_vol = float(sys.argv[5])
 
+print("Usage: python calculator.py <atr> <std> <last_price> <capital> <target_vol>")
 print(f"ATR: {atr}")
 print(f"STD: {std}")
 
 print("============")
-print(f"Contracts: {determine_contracts_volatility(std, tick_size, tick_value, last_price)}")
+print(f"Contracts: {determine_contracts_volatility(std, tick_size, tick_value, last_price, capital, target_vol)}")
 print(f"Stop {determine_stop_losses(atr, tick_size, v = k)}")

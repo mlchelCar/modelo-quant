@@ -907,7 +907,7 @@ class Variant():
     
     def compute(self, tick_size, tick_value, costs, capital):
         self.results, dates, self.trade_list, self.contracts = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital)
-        self.metrics =  compute_data(self.results, dates, self.last_date, self.num, self.trade_list)
+        self.metrics =  compute_data(self.results, dates, self.num, self.trade_list)
         print(f"Variant {self.name} created.")
 
 def determine_stop_losses(stop_type, entries, v, tick_size):
