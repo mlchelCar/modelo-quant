@@ -781,6 +781,17 @@ def compute_data(l, dates, n, trade_list):
 
     return results
 
+OUTPUT_TEXT = []
+def save_output(s):
+    print(s)
+    OUTPUT_TEXT.append(s + "\n")
+
+def write_output_to_file(title):
+    filename = f"{title}.txt"
+    with open(filename, "w", encoding="utf-8") as f:
+        f.writelines(OUTPUT_TEXT)
+
+
 def print_results(results, number, best=5):
     # Counter for how many times each variant appears in the top 'best'
     appearance_counter = Counter()
@@ -806,90 +817,100 @@ def print_results(results, number, best=5):
 
         # Print results (your original code)
         for j, v in enumerate(k):
-            print(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
-            print(f"Contracts: {v[0].contracts}")
+            save_output(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
+            save_output(f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][0]:
                 print(f"{m}: {v[0].metrics[v[1]][0][m]}")
 
-            print(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
-            print(f"Contracts: {v[0].contracts}")
+            save_output(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
+            save_output(f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][1]:
                 print(f"{m}: {v[0].metrics[v[1]][1][m]}")
 
     # Print summary BEFORE printing each rolling result
-    print("\n========== Variant Appearance Count (FIT Rankings) ==========")
+    save_output("\n========== Variant Appearance Count (FIT Rankings) ==========")
     for name, count in sorted(appearance_counter.items(), key=lambda x: -x[1]):
         print(f"{name}: {count} times")
 
     best_variant_name, _ = appearance_counter.most_common(1)[0]
     best_variant = next(v for v in results if v.name == best_variant_name)
 
-    print("\n============================================")
-    print("BEST VARIANT:", best_variant.name)
-    print(f"Total Fit (top {best}) Appearances: {appearance_counter[best_variant_name]}")
-    print("============================================")
+    save_output("\n============================================")
+    save_output("BEST VARIANT:", best_variant.name)
+    save_output(f"Total Fit (top {best}) Appearances: {appearance_counter[best_variant_name]}")
+    save_output("============================================")
 
     print_best_variant_details(best_variant)
 
     make_graphs(best_variant)
 
 def print_best_variant_details(best_variant):
-    print("\n========== Best Variant Detailed Metrics ==========\n")
-    print(f"Variant Name: {best_variant.name}")
-    print("---------------------------------------------------")
+    save_output("\n========== Best Variant Detailed Metrics ==========\n")
+    save_output(f"Variant Name: {best_variant.name}")
+    save_output("---------------------------------------------------")
 
     for i, rolling in enumerate(best_variant.metrics):
         fit = rolling[0]   # dictionary of FIT metrics
         test = rolling[1]  # dictionary of TEST metrics
 
-        print(f"\n================ Rolling {i+1} ================")
+        save_output(f"\n================ Rolling {i+1} ================")
 
         # =============================
         # FIT METRICS
         # =============================
-        # print("\n--- FIT Metrics ---")
+        # save_output("\n--- FIT Metrics ---")
         # if fit != {}:
-        #     print(f"Sharpe Ratio: {fit['Sharpe Ratio']}")
-        #     print(f"Sharpe 95% CI: {fit['Sharpe 95% CI']}")
-        #     print(f"Daily Win Rate (%): {fit['Daily Win Rate (%)']}")
-        #     print(f"Max Drawdown: {fit['Max Drawdown']}")
-        #     print(f"Profit Factor: {fit['Profit Factor']}")
-        #     print(f"Expectancy: {fit['Expectancy']}")
-        #     print(f"Average Win: {fit['Average Win']:.2f}")
-        #     print(f"Average Loss: {fit['Average Loss']:.2f}")
-        #     print(f"Total Trades (Global): {fit['Total Trades (Global)']}")
-        #     print(f"Total Days: {fit['Total Days']}")
+            # save_output(f"Start Date: {test.get('Start Date', 'N/A')}")
+            # save_output(f"End Date:   {test.get('End Date','N/A')}")
+
+            # save_output(f"Sharpe Ratio:        {test['Sharpe Ratio']}")
+            # save_output(f"Annualized Sharpe:   {test['Annualized Sharpe']}")
+            # save_output(f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
+            # save_output(f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
+            # save_output(f"CAGR:                {test.get('CAGR', 'N/A')}")
+
+            # save_output(f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
+            # save_output(f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
+            # save_output(f"Max Drawdown:        {test['Max Drawdown']}")
+
+            # save_output(f"Profit Factor:       {test['Profit Factor']}")
+            # save_output(f"Expectancy:          {test['Expectancy']}")
+            # save_output(f"Average Win:         {test['Average Win']:.2f}")
+            # save_output(f"Average Loss:        {test['Average Loss']:.2f}")
+
+            # save_output(f"Total Trades:        {test['Total Trades']}")
+            # save_output(f"Total Days:          {test['Total Days']}")
         # else:
-        #     print("No FIT data (this is the last rolling window).")
+        #     save_output("No FIT data (this is the last rolling window).")
 
         # =============================
         # TEST METRICS
         # =============================
-        print("\n--- TEST Metrics ---")
+        save_output("\n--- TEST Metrics ---")
         if test != {}:
-            print(f"Start Date: {test.get('Start Date', 'N/A')}")
-            print(f"End Date:   {test.get('End Date','N/A')}")
+            save_output(f"Start Date: {test.get('Start Date', 'N/A')}")
+            save_output(f"End Date:   {test.get('End Date','N/A')}")
 
-            print(f"Sharpe Ratio:        {test['Sharpe Ratio']}")
-            print(f"Annualized Sharpe:   {test['Annualized Sharpe']}")
-            print(f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
-            print(f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
-            print(f"CAGR:                {test.get('CAGR', 'N/A')}")
+            save_output(f"Sharpe Ratio:        {test['Sharpe Ratio']}")
+            save_output(f"Annualized Sharpe:   {test['Annualized Sharpe']}")
+            save_output(f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
+            save_output(f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
+            save_output(f"CAGR:                {test.get('CAGR', 'N/A')}")
 
-            print(f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
-            print(f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
-            print(f"Max Drawdown:        {test['Max Drawdown']}")
+            save_output(f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
+            save_output(f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
+            save_output(f"Max Drawdown:        {test['Max Drawdown']}")
 
-            print(f"Profit Factor:       {test['Profit Factor']}")
-            print(f"Expectancy:          {test['Expectancy']}")
-            print(f"Average Win:         {test['Average Win']:.2f}")
-            print(f"Average Loss:        {test['Average Loss']:.2f}")
+            save_output(f"Profit Factor:       {test['Profit Factor']}")
+            save_output(f"Expectancy:          {test['Expectancy']}")
+            save_output(f"Average Win:         {test['Average Win']:.2f}")
+            save_output(f"Average Loss:        {test['Average Loss']:.2f}")
 
-            # print(f"Total Trades:        {test['Total Trades']}")
-            # print(f"Total Days:          {test['Total Days']}")
+            # save_output(f"Total Trades:        {test['Total Trades']}")
+            # save_output(f"Total Days:          {test['Total Days']}")
 
         else:
-            print("No TEST data in this rolling window.")
+            save_output("No TEST data in this rolling window.")
 
 def make_graphs(variant):
     pass
@@ -1227,6 +1248,10 @@ def main():
     # === Split data (fit/test) ===
     run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs ,title=tit)
 
+    # === Save data ===
+    write_output_to_file(tit)
+
+
 if __name__ == "__main__":
     main()
     
@@ -1263,8 +1288,11 @@ Optimize load_data function
 Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
 Optimizar memoria
 Optimize volume profile function                                     OK
-Save output
+Save output                                                          OK
 Generate p&l graph function
+Generate CI per rolling graph
+Show Rolling Division on visualization
+Add 1 year, 3 months, 1 month returns from best
 Fit and Test separated (out of sample)                               OK
 Fit and Test rolling out of sample                                   OK
 Add final date                                                       OK
