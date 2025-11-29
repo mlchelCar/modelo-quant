@@ -33,7 +33,7 @@ def determine_contracts_volatility(std, tick_size, tick_value, last_price, capit
     return pos
 
 k = 0.25
-tick_size, tick_value = 0.00005, 0.625
+tick_size, tick_value = 0.0001, 1.25
 atr = float(sys.argv[1])
 std = float(sys.argv[2])
 last_price = float(sys.argv[3])

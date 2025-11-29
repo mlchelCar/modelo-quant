@@ -1263,6 +1263,7 @@ Optimize load_data function
 Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
 Optimizar memoria
 Optimize volume profile function                                     OK
+Save output
 Generate p&l graph function
 Fit and Test separated (out of sample)                               OK
 Fit and Test rolling out of sample                                   OK
