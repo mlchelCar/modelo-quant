@@ -791,7 +791,6 @@ def write_output_to_file(title):
     with open(filename, "w", encoding="utf-8") as f:
         f.writelines(OUTPUT_TEXT)
 
-
 def print_results(results, number, best=5):
     # Counter for how many times each variant appears in the top 'best'
     appearance_counter = Counter()
@@ -836,7 +835,7 @@ def print_results(results, number, best=5):
     best_variant = next(v for v in results if v.name == best_variant_name)
 
     save_output("\n============================================")
-    save_output("BEST VARIANT:", best_variant.name)
+    save_output(f"BEST VARIANT:{best_variant.name}")
     save_output(f"Total Fit (top {best}) Appearances: {appearance_counter[best_variant_name]}")
     save_output("============================================")
 
