@@ -1005,7 +1005,7 @@ def calculate_atr(candles, period=20, mult=24):
 
     return atr
 
-def calculate_std(candles, period=20, mult=24):
+def calculate_std(candles, period=575, mult=24):
 
     """
     Calculate rolling standard deviation of returns over 'period'.
@@ -1250,7 +1250,6 @@ def main():
     # === Save data ===
     write_output_to_file(tit)
 
-
 if __name__ == "__main__":
     main()
     
@@ -1308,6 +1307,7 @@ Handle 0 contracts situations                                        OK
 Trades bleeding across Contracts Add Switch
 Volatility scaling: you’re treating 1-hour STD as daily STD          OK
 Using Daily ATR                                                      OK
+Compute std on daily candles
 Remove Zero-return days
 Avg Win / Avg Loss are wrong                                         OK
 Fix Compute Data                                                     OK
