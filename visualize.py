@@ -768,10 +768,10 @@ def compute_data(l, dates, n, trade_list):
                     float("inf") if not np.isfinite(profit_factor)
                     else round(profit_factor, 3)
                 ),
-                "Expectancy": round(expectancy, 3),
+                "Expectancy": round(expectancy, 6),
 
-                "Average Win": round(avg_w, 3),
-                "Average Loss": round(avg_l, 3),
+                "Average Win": round(avg_w, 6),
+                "Average Loss": round(avg_l, 6),
 
                 "Total Trades": len(trades_in_segment),
                 "Total Days": len(seg_returns),
@@ -819,17 +819,17 @@ def print_results(results, number, best=5):
             save_output(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
             save_output(f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][0]:
-                print(f"{m}: {v[0].metrics[v[1]][0][m]}")
+                save_output(f"{m}: {v[0].metrics[v[1]][0][m]}")
 
             save_output(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
             save_output(f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][1]:
-                print(f"{m}: {v[0].metrics[v[1]][1][m]}")
+                save_output(f"{m}: {v[0].metrics[v[1]][1][m]}")
 
     # Print summary BEFORE printing each rolling result
     save_output("\n========== Variant Appearance Count (FIT Rankings) ==========")
     for name, count in sorted(appearance_counter.items(), key=lambda x: -x[1]):
-        print(f"{name}: {count} times")
+        save_output(f"{name}: {count} times")
 
     best_variant_name, _ = appearance_counter.most_common(1)[0]
     best_variant = next(v for v in results if v.name == best_variant_name)
@@ -1005,7 +1005,7 @@ def calculate_atr(candles, period=20, mult=24):
 
     return atr
 
-def calculate_std(candles, period=575, mult=24):
+def calculate_std(candles, period=20, mult=24):
 
     """
     Calculate rolling standard deviation of returns over 'period'.
@@ -1249,6 +1249,7 @@ def main():
 
     # === Save data ===
     write_output_to_file(tit)
+
 
 if __name__ == "__main__":
     main()
