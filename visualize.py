@@ -843,6 +843,20 @@ def print_results(results, number, best=5):
 
     make_graphs(best_variant)
 
+def print_results_2(results, number):
+    for variant in results:
+        save_output(f"\n========== Variant {variant.name} ==========")
+
+        for i in range(number - 1):
+            test_metrics = variant.metrics[i][1]  # TEST metrics
+
+            sharpe = test_metrics.get("Annualized Sharpe", None)
+            sharpe_ci = test_metrics.get("Sharpe 95% CI", None)
+
+            save_output(f"\nRolling {i}:")
+            save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
+            save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
+
 def print_best_variant_details(best_variant):
     save_output("\n========== Best Variant Detailed Metrics ==========\n")
     save_output(f"Variant Name: {best_variant.name}")
@@ -1060,7 +1074,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
 
     # 2️⃣ Calculate ATR and std once for the full candle series
     atr_series = calculate_atr(all_candles, period=20)
-    std_series = calculate_std(all_candles, period=20)
+    std_series = calculate_std(all_candles, period=100)
 
     # === Build Volume Profiles between crossovers ===
     volume_profiles = []
@@ -1103,7 +1117,10 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         e["std"] = std_series[idx]
 
     # === Create Variants ===
-    if stop_type == "atr": s = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    if stop_type == "atr": s =     [0.25, 0.5]
+
+    # [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+                                
     elif stop_type == "fixed": s = [10, 20]
 
     for stop in s:
@@ -1137,8 +1154,8 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         rrr=7
     )
 
-
-    print_results(results, num)
+    print_results_2(results, num)
+    # print_results_2(results, num)
 
 def cronometer(func):
 
@@ -1286,12 +1303,14 @@ Control Trade Duration                                               OK
 Optimize load_data function
 Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
 Optimizar memoria
+Otimizacao: detect entries lopando em candles apartir do B
 Optimize volume profile function                                     OK
 Save output                                                          OK
 Generate p&l graph function
+Week profit visualization
 Generate CI per rolling graph
 Show Rolling Division on visualization
-Add 1 year, 3 months, 1 month returns from best
+Add 1 year, 3 months, 1 month returns
 Fit and Test separated (out of sample)                               OK
 Fit and Test rolling out of sample                                   OK
 Add final date                                                       OK
@@ -1305,11 +1324,12 @@ Stop size based on ATR                                               OK
 Fix instrument specifics(tick size, tick value, costs)               OK
 Fix volality in % not being handled                                  OK
 Handle 0 contracts situations                                        OK
+Test keeping position open
 Trades bleeding across Contracts Add Switch
 Volatility scaling: you’re treating 1-hour STD as daily STD          OK
 Using Daily ATR                                                      OK
 Compute std on daily candles
-Remove Zero-return days
+Remove Zero-return days?
 Avg Win / Avg Loss are wrong                                         OK
 Fix Compute Data                                                     OK
 Tralling Stop instead of take profit
