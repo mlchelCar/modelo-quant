@@ -262,7 +262,7 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
     return entries
 
 def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
-                        tick_size_in_price, tick_value, costs, capital, slipage_on_losses=0):
+                        tick_size_in_price, tick_value, costs, capital, slipage_on_losses=0, check_same_contract=False):
     results = []
     contracts = []
 
@@ -271,6 +271,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
+        contract = entry["contract"]
 
         if sl_ticks is None or c == 0:
             continue
@@ -301,6 +302,10 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
             closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0)
 
         for candle in candles:
+
+            # if check_same_contract and candle.symbol != entry["symbol"]:
+            #     break
+
             candle_time = candle.time
             if candle_time.tzinfo is not None:
                 candle_time = candle_time.tz_convert(None)
@@ -1306,7 +1311,7 @@ Optimizar memoria
 Otimizacao: detect entries lopando em candles apartir do B
 Optimize volume profile function                                     OK
 Save output                                                          OK
-Generate p&l graph function
+Generate p&l graph function                                          OK
 Week profit visualization
 Generate CI per rolling graph
 Show Rolling Division on visualization
