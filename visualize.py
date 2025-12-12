@@ -208,7 +208,7 @@ def decide_entry_direction(b_candle_close, poc, current_candle):
     
     return None
                     
-def detect_entries(candles, volume_profiles, same_symbols=False):
+def detect_entries(candles, volume_profiles, same_symbols_A_B=False, same_symbols_A_entry=True):
     """
     Detects when candles touch a POC level from prior volume profiles.
 
@@ -231,16 +231,14 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
     for vp in volume_profiles:
         poc = vp["poc"]
         B_time = pd.Timestamp(vp["B"]).tz_localize(None)
-        vp_symbol = vp["symbol"]
+        vp_symbolA = vp["a_candle"].symbol
+        vp_symbolB = vp["b_candle"].symbol
 
         # Find the candle that matches B
-        b_candle = next((c for c in candles if pd.Timestamp(c.time).tz_localize(None) == B_time), None)
-        if b_candle is None:
-            print(f"⚠️ Could not find B candle at {B_time}")
-            continue
+        b_candle = vp["b_candle"]
 
-        if same_symbols and b_candle.symbol != vp_symbol:
-            print(f"⚠️ B-candle symbol ({b_candle.symbol}) does not match VP symbol ({vp_symbol}) at {B_time}")
+        if same_symbols_A_B and vp_symbolB != vp_symbolA:
+            print(f"⚠️ B-candle symbol ({b_candle.symbol}) does not match A-candle symbol ({vp_symbol}) at {B_time}")
             continue
 
         b_close = b_candle.close
@@ -250,19 +248,19 @@ def detect_entries(candles, volume_profiles, same_symbols=False):
             if pd.Timestamp(c.time).tz_localize(None) <= B_time:
                 continue  # only check after B
 
-            if same_symbols and c.symbol != vp_symbol:
+            if same_symbols_A_entry and c.symbol != vp_symbolA:
                 break  # Stop search, we are on a new contract
 
             entry_type = decide_entry_direction(b_close, poc, c)
 
             if entry_type:
-                entries.append({ "B": B_time, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type, "symbol": vp_symbol})
+                entries.append({ "B": B_time, "entry_time": times[i], "entry_price": poc, "candle_index": i, "entry_type": entry_type})
                 break  # stop after first touch
 
     return entries
 
 def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
-                        tick_size_in_price, tick_value, costs, capital, slipage_on_losses=0, check_same_contract=False):
+                        tick_size_in_price, tick_value, costs, capital, slipage_on_losses=0):
     results = []
     contracts = []
 
@@ -271,7 +269,6 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
         entry_time = entry["entry_time"]
         entry_price = entry["entry_price"]
         direction = entry["entry_type"]
-        contract = entry["contract"]
 
         if sl_ticks is None or c == 0:
             continue
@@ -302,10 +299,6 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
             closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0)
 
         for candle in candles:
-
-            # if check_same_contract and candle.symbol != entry["symbol"]:
-            #     break
-
             candle_time = candle.time
             if candle_time.tzinfo is not None:
                 candle_time = candle_time.tz_convert(None)
@@ -1105,9 +1098,8 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         if all_candles[idx_a].symbol != all_candles[idx_b].symbol:
             raise ValueError(f"Symbol mismatch: {all_candles[idx_a].symbol} != {all_candles[idx_b].symbol}")
         
-        current_symbol = all_candles[idx_a].symbol
         poc = calculate_poc(vp, tick_size)
-        volume_profiles.append({"A": A, "B": B, "poc": poc, "symbol": current_symbol})
+        volume_profiles.append({"a_candle": all_candles[idx_a], "b_candle": all_candles[idx_b], "poc": poc, "B": B})
         avolume_profiles.append({"A": A, "B": B, "poc": poc})
 
     entries = detect_entries(all_candles, volume_profiles)
@@ -1122,7 +1114,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         e["std"] = std_series[idx]
 
     # === Create Variants ===
-    if stop_type == "atr": s =     [0.25, 0.5]
+    if stop_type == "atr": s =     [0.25]
 
     # [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
                                 
@@ -1311,7 +1303,7 @@ Optimizar memoria
 Otimizacao: detect entries lopando em candles apartir do B
 Optimize volume profile function                                     OK
 Save output                                                          OK
-Generate p&l graph function                                          OK
+Generate p&l graph function                                         
 Week profit visualization
 Generate CI per rolling graph
 Show Rolling Division on visualization
@@ -1330,7 +1322,8 @@ Fix instrument specifics(tick size, tick value, costs)               OK
 Fix volality in % not being handled                                  OK
 Handle 0 contracts situations                                        OK
 Test keeping position open
-Trades bleeding across Contracts Add Switch
+Fix Contract Switch to match tradingview
+Trades bleeding across Contracts Add Switch                          OK
 Volatility scaling: you’re treating 1-hour STD as daily STD          OK
 Using Daily ATR                                                      OK
 Compute std on daily candles
