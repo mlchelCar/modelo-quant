@@ -73,6 +73,49 @@ def calculate_volume_profile_from_trades(trades_df, A, B, symbol=None, bins=80):
 
     return {"price_bins": price_bins, "volumes": vol, "A": A, "B": B, "symbol": symbol}
 
+def calculate_volume_profile_from_trades_fast(trades_df, A, B, symbol=None, bins=80):
+    print(f"\nCalculating fast volume profile from {len(trades_df)} trades...")
+    print(f"  A: {A}, B: {B}, symbol: {symbol}, bins: {bins}")
+
+    df = trades_df
+
+    # --- Time handling ---
+    if "ts_event" in df.columns:
+        time = df["ts_event"].values
+    elif "time" in df.columns:
+        time = df["time"].values
+    else:
+        raise ValueError("No valid time column found")
+
+    A = np.datetime64(A)
+    B = np.datetime64(B)
+
+    mask = (time >= A) & (time <= B)
+
+    if symbol is not None and "symbol" in df.columns:
+        mask &= (df["symbol"].values == symbol)
+
+    if not mask.any():
+        return None
+
+    prices  = df["price"].values[mask].astype(np.float64, copy=False)
+    volumes = df["size"].values[mask].astype(np.float64, copy=False)
+
+    # --- Volume profile ---
+    pmin, pmax = prices.min(), prices.max()
+    bin_edges = np.linspace(pmin, pmax, bins + 1)
+
+    vol, _ = np.histogram(prices, bins=bin_edges, weights=volumes)
+    price_bins = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+    return {
+        "price_bins": price_bins,
+        "volumes": vol,
+        "A": A,
+        "B": B,
+        "symbol": symbol
+    }
+
 def calculate_poc(vp, tick_size, return_volume=False):
     """Return the price of the POC (and optionally the volume)."""
     if vp is None or len(vp["volumes"]) == 0:
@@ -760,15 +803,15 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         A = pd.Timestamp(all_candles[idx_a].time).tz_localize(None)
         B = pd.Timestamp(all_candles[idx_b].time).tz_localize(None)
 
-        if all_candles[idx_a].symbol != all_candles[idx_b].symbol:
-            continue
+        # if all_candles[idx_a].symbol != all_candles[idx_b].symbol: # we check this in detect_entries
+        #     continue
 
         vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=all_candles[idx_a].symbol, bins=160)
         if vp is None:
             continue
 
-        if all_candles[idx_a].symbol != all_candles[idx_b].symbol:
-            raise ValueError(f"Symbol mismatch: {all_candles[idx_a].symbol} != {all_candles[idx_b].symbol}")
+        # if all_candles[idx_a].symbol != all_candles[idx_b].symbol:
+        #     raise ValueError(f"Symbol mismatch: {all_candles[idx_a].symbol} != {all_candles[idx_b].symbol}")
         
         poc = calculate_poc(vp, tick_size)
         volume_profiles.append({"a_candle": all_candles[idx_a], "b_candle": all_candles[idx_b], "poc": poc, "B": B})
