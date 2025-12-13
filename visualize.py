@@ -238,7 +238,7 @@ def detect_entries(candles, volume_profiles, same_symbols_A_B=False, same_symbol
         b_candle = vp["b_candle"]
 
         if same_symbols_A_B and vp_symbolB != vp_symbolA:
-            print(f"⚠️ B-candle symbol ({b_candle.symbol}) does not match A-candle symbol ({vp_symbol}) at {B_time}")
+            print(f"⚠️ B-candle symbol ({b_candle.symbol}) does not match A-candle symbol ({vp_symbolA}) at {B_time}")
             continue
 
         b_close = b_candle.close
@@ -270,14 +270,17 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
     
     for entry, sl_ticks, rr in zip(entries, stop_losses, rrratios):
         c = determine_contracts_volatility(entry, tick_size_in_price, tick_value, capital, target_vol=0.10)
-        slippage_cost = slippage_ticks[symbol] * tick_value * c
-        entry_time = entry["entry_time"]
-        entry_price = entry["entry_price"]
-        direction = entry["entry_type"]
 
         if sl_ticks is None or c == 0:
             continue
         contracts.append(c)
+
+        slippage_cost = slippage_ticks[symbol] * tick_value * c
+        entry_idx   = entry["candle_index"]
+        entry_time = entry["entry_time"]
+        entry_price = entry["entry_price"]
+        direction = entry["entry_type"]
+
 
         if entry_time.tzinfo is not None:
             entry_time = entry_time.tz_convert(None)
@@ -293,7 +296,6 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
             stop_level   = entry_price + stop_dist_price
             target_level = entry_price - rr * stop_dist_price
 
-        prev_close = entry_price
         trade_closed = False
         result = 0
 
@@ -303,7 +305,8 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
         else:
             closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0)
 
-        for candle in candles:
+        # for candle in candles:
+        for candle in candles[entry_idx + 1:]:
             candle_time = candle.time
             if candle_time.tzinfo is not None:
                 candle_time = candle_time.tz_convert(None)
