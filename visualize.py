@@ -930,7 +930,7 @@ def main():
     rollings = 12
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs ,sm=sb, title=tit,)
+    run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs ,sm=sb, title=tit)
 
     # === Save data ===
     write_output_to_file(tit)
@@ -1003,4 +1003,6 @@ Avg Win / Avg Loss are wrong                                         OK
 Fix Compute Data                                                     OK
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
+Plot metrics x profit factor
+Combine M6E, MCL, etc daily returns to see the metrics togheter
 '''
