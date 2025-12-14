@@ -1,0 +1,1656 @@
+
+========== Variant atr_0.25_0.25 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   -1.57
+  Sharpe 95% CI (TEST):  (np.float64(-2.264), np.float64(-0.779))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   -1.429
+  Sharpe 95% CI (TEST):  (np.float64(-2.17), np.float64(-0.549))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   -1.395
+  Sharpe 95% CI (TEST):  (np.float64(-2.2), np.float64(-0.459))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   -1.456
+  Sharpe 95% CI (TEST):  (np.float64(-2.266), np.float64(-0.453))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   -1.319
+  Sharpe 95% CI (TEST):  (np.float64(-2.207), np.float64(-0.247))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   -1.372
+  Sharpe 95% CI (TEST):  (np.float64(-2.295), np.float64(-0.186))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   -1.374
+  Sharpe 95% CI (TEST):  (np.float64(-2.423), np.float64(-0.061))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -1.455
+  Sharpe 95% CI (TEST):  (np.float64(-2.55), np.float64(-0.017))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   -1.45
+  Sharpe 95% CI (TEST):  (np.float64(-2.685), np.float64(0.25))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   -0.922
+  Sharpe 95% CI (TEST):  (np.float64(-2.556), np.float64(1.753))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.312
+  Sharpe 95% CI (TEST):  (np.float64(-2.116), np.float64(5.865))
+
+========== Variant atr_0.25_0.5 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   -0.645
+  Sharpe 95% CI (TEST):  (np.float64(-1.499), np.float64(0.301))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   -0.627
+  Sharpe 95% CI (TEST):  (np.float64(-1.512), np.float64(0.36))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   -0.63
+  Sharpe 95% CI (TEST):  (np.float64(-1.579), np.float64(0.381))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   -0.483
+  Sharpe 95% CI (TEST):  (np.float64(-1.455), np.float64(0.611))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   -0.401
+  Sharpe 95% CI (TEST):  (np.float64(-1.439), np.float64(0.816))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   -0.58
+  Sharpe 95% CI (TEST):  (np.float64(-1.661), np.float64(0.725))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   -0.323
+  Sharpe 95% CI (TEST):  (np.float64(-1.629), np.float64(1.135))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.66
+  Sharpe 95% CI (TEST):  (np.float64(-2.014), np.float64(0.929))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   -0.7
+  Sharpe 95% CI (TEST):  (np.float64(-2.238), np.float64(1.204))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.069
+  Sharpe 95% CI (TEST):  (np.float64(-1.924), np.float64(2.586))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   2.381
+  Sharpe 95% CI (TEST):  (np.float64(-0.565), np.float64(5.882))
+
+========== Variant atr_0.25_1 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.035
+  Sharpe 95% CI (TEST):  (np.float64(-0.903), np.float64(0.964))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   -0.052
+  Sharpe 95% CI (TEST):  (np.float64(-1.049), np.float64(0.915))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   -0.014
+  Sharpe 95% CI (TEST):  (np.float64(-1.057), np.float64(0.99))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.16
+  Sharpe 95% CI (TEST):  (np.float64(-0.925), np.float64(1.218))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.309
+  Sharpe 95% CI (TEST):  (np.float64(-0.853), np.float64(1.47))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   -0.017
+  Sharpe 95% CI (TEST):  (np.float64(-1.252), np.float64(1.23))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.059
+  Sharpe 95% CI (TEST):  (np.float64(-1.33), np.float64(1.474))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.531
+  Sharpe 95% CI (TEST):  (np.float64(-2.066), np.float64(1.023))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   -0.132
+  Sharpe 95% CI (TEST):  (np.float64(-1.942), np.float64(1.638))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.688
+  Sharpe 95% CI (TEST):  (np.float64(-1.541), np.float64(2.771))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.804
+  Sharpe 95% CI (TEST):  (np.float64(-1.277), np.float64(4.436))
+
+========== Variant atr_0.25_2 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.18
+  Sharpe 95% CI (TEST):  (np.float64(-0.752), np.float64(1.058))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.081
+  Sharpe 95% CI (TEST):  (np.float64(-0.953), np.float64(1.041))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.127
+  Sharpe 95% CI (TEST):  (np.float64(-0.962), np.float64(1.075))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.28
+  Sharpe 95% CI (TEST):  (np.float64(-0.826), np.float64(1.275))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.204
+  Sharpe 95% CI (TEST):  (np.float64(-0.988), np.float64(1.295))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.137
+  Sharpe 95% CI (TEST):  (np.float64(-1.179), np.float64(1.336))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.137
+  Sharpe 95% CI (TEST):  (np.float64(-1.366), np.float64(1.451))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.003
+  Sharpe 95% CI (TEST):  (np.float64(-1.704), np.float64(1.396))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.577
+  Sharpe 95% CI (TEST):  (np.float64(-1.353), np.float64(2.098))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.465
+  Sharpe 95% CI (TEST):  (np.float64(-0.796), np.float64(3.128))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   2.151
+  Sharpe 95% CI (TEST):  (np.float64(-1.0), np.float64(4.21))
+
+========== Variant atr_0.25_3 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.171
+  Sharpe 95% CI (TEST):  (np.float64(-0.782), np.float64(1.028))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   -0.119
+  Sharpe 95% CI (TEST):  (np.float64(-1.173), np.float64(0.815))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   -0.097
+  Sharpe 95% CI (TEST):  (np.float64(-1.229), np.float64(0.888))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.031
+  Sharpe 95% CI (TEST):  (np.float64(-1.097), np.float64(1.057))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.103
+  Sharpe 95% CI (TEST):  (np.float64(-1.127), np.float64(1.18))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   -0.101
+  Sharpe 95% CI (TEST):  (np.float64(-1.539), np.float64(1.104))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   -0.264
+  Sharpe 95% CI (TEST):  (np.float64(-1.796), np.float64(1.035))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.498
+  Sharpe 95% CI (TEST):  (np.float64(-2.276), np.float64(0.98))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   -0.065
+  Sharpe 95% CI (TEST):  (np.float64(-2.128), np.float64(1.533))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.492
+  Sharpe 95% CI (TEST):  (np.float64(-1.935), np.float64(2.419))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.7
+  Sharpe 95% CI (TEST):  (np.float64(-2.81), np.float64(3.331))
+
+========== Variant atr_0.25_4 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.332
+  Sharpe 95% CI (TEST):  (np.float64(-0.63), np.float64(1.158))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.186
+  Sharpe 95% CI (TEST):  (np.float64(-0.871), np.float64(1.075))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.204
+  Sharpe 95% CI (TEST):  (np.float64(-0.931), np.float64(1.127))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.314
+  Sharpe 95% CI (TEST):  (np.float64(-0.81), np.float64(1.28))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.414
+  Sharpe 95% CI (TEST):  (np.float64(-0.828), np.float64(1.412))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.23
+  Sharpe 95% CI (TEST):  (np.float64(-1.222), np.float64(1.336))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.051
+  Sharpe 95% CI (TEST):  (np.float64(-1.57), np.float64(1.276))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.238
+  Sharpe 95% CI (TEST):  (np.float64(-2.191), np.float64(1.134))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.336
+  Sharpe 95% CI (TEST):  (np.float64(-1.786), np.float64(1.807))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.007
+  Sharpe 95% CI (TEST):  (np.float64(-1.431), np.float64(2.719))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.999
+  Sharpe 95% CI (TEST):  (np.float64(-2.811), np.float64(3.277))
+
+========== Variant atr_0.25_5 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.519
+  Sharpe 95% CI (TEST):  (np.float64(-0.433), np.float64(1.318))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.439
+  Sharpe 95% CI (TEST):  (np.float64(-0.596), np.float64(1.281))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.456
+  Sharpe 95% CI (TEST):  (np.float64(-0.638), np.float64(1.319))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.58
+  Sharpe 95% CI (TEST):  (np.float64(-0.518), np.float64(1.493))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.692
+  Sharpe 95% CI (TEST):  (np.float64(-0.488), np.float64(1.628))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.52
+  Sharpe 95% CI (TEST):  (np.float64(-0.911), np.float64(1.551))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.343
+  Sharpe 95% CI (TEST):  (np.float64(-1.219), np.float64(1.489))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.066
+  Sharpe 95% CI (TEST):  (np.float64(-1.876), np.float64(1.374))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.623
+  Sharpe 95% CI (TEST):  (np.float64(-1.543), np.float64(1.985))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.291
+  Sharpe 95% CI (TEST):  (np.float64(-1.093), np.float64(2.882))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.995
+  Sharpe 95% CI (TEST):  (np.float64(-2.811), np.float64(3.277))
+
+========== Variant atr_0.25_6 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.43
+  Sharpe 95% CI (TEST):  (np.float64(-0.547), np.float64(1.225))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.323
+  Sharpe 95% CI (TEST):  (np.float64(-0.739), np.float64(1.182))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.309
+  Sharpe 95% CI (TEST):  (np.float64(-0.805), np.float64(1.197))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.422
+  Sharpe 95% CI (TEST):  (np.float64(-0.737), np.float64(1.347))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.525
+  Sharpe 95% CI (TEST):  (np.float64(-0.688), np.float64(1.48))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.251
+  Sharpe 95% CI (TEST):  (np.float64(-1.179), np.float64(1.325))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.03
+  Sharpe 95% CI (TEST):  (np.float64(-1.669), np.float64(1.216))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.032
+  Sharpe 95% CI (TEST):  (np.float64(-1.965), np.float64(1.338))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.583
+  Sharpe 95% CI (TEST):  (np.float64(-1.599), np.float64(1.947))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.24
+  Sharpe 95% CI (TEST):  (np.float64(-1.226), np.float64(2.807))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.995
+  Sharpe 95% CI (TEST):  (np.float64(-2.811), np.float64(3.277))
+
+========== Variant atr_0.25_7 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.488
+  Sharpe 95% CI (TEST):  (np.float64(-0.477), np.float64(1.268))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.378
+  Sharpe 95% CI (TEST):  (np.float64(-0.684), np.float64(1.207))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.353
+  Sharpe 95% CI (TEST):  (np.float64(-0.762), np.float64(1.225))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.464
+  Sharpe 95% CI (TEST):  (np.float64(-0.687), np.float64(1.374))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.568
+  Sharpe 95% CI (TEST):  (np.float64(-0.654), np.float64(1.509))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.289
+  Sharpe 95% CI (TEST):  (np.float64(-1.158), np.float64(1.344))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.114
+  Sharpe 95% CI (TEST):  (np.float64(-1.603), np.float64(1.279))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.136
+  Sharpe 95% CI (TEST):  (np.float64(-1.914), np.float64(1.404))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.67
+  Sharpe 95% CI (TEST):  (np.float64(-1.54), np.float64(1.99))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.311
+  Sharpe 95% CI (TEST):  (np.float64(-1.178), np.float64(2.793))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.995
+  Sharpe 95% CI (TEST):  (np.float64(-2.811), np.float64(3.277))
+
+========== Variant atr_0.25_8 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.512
+  Sharpe 95% CI (TEST):  (np.float64(-0.451), np.float64(1.281))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.395
+  Sharpe 95% CI (TEST):  (np.float64(-0.674), np.float64(1.209))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.367
+  Sharpe 95% CI (TEST):  (np.float64(-0.754), np.float64(1.212))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.491
+  Sharpe 95% CI (TEST):  (np.float64(-0.668), np.float64(1.384))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.594
+  Sharpe 95% CI (TEST):  (np.float64(-0.621), np.float64(1.508))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.302
+  Sharpe 95% CI (TEST):  (np.float64(-1.152), np.float64(1.344))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.145
+  Sharpe 95% CI (TEST):  (np.float64(-1.579), np.float64(1.295))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.167
+  Sharpe 95% CI (TEST):  (np.float64(-1.909), np.float64(1.408))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.691
+  Sharpe 95% CI (TEST):  (np.float64(-1.551), np.float64(1.977))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.318
+  Sharpe 95% CI (TEST):  (np.float64(-1.206), np.float64(2.761))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.995
+  Sharpe 95% CI (TEST):  (np.float64(-2.812), np.float64(3.277))
+
+========== Variant atr_0.25_9 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.547
+  Sharpe 95% CI (TEST):  (np.float64(-0.412), np.float64(1.302))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.426
+  Sharpe 95% CI (TEST):  (np.float64(-0.637), np.float64(1.232))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.403
+  Sharpe 95% CI (TEST):  (np.float64(-0.708), np.float64(1.231))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.526
+  Sharpe 95% CI (TEST):  (np.float64(-0.628), np.float64(1.398))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.629
+  Sharpe 95% CI (TEST):  (np.float64(-0.583), np.float64(1.513))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.332
+  Sharpe 95% CI (TEST):  (np.float64(-1.126), np.float64(1.363))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.169
+  Sharpe 95% CI (TEST):  (np.float64(-1.6), np.float64(1.304))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.196
+  Sharpe 95% CI (TEST):  (np.float64(-1.944), np.float64(1.403))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.724
+  Sharpe 95% CI (TEST):  (np.float64(-1.554), np.float64(1.98))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.335
+  Sharpe 95% CI (TEST):  (np.float64(-1.182), np.float64(2.737))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.995
+  Sharpe 95% CI (TEST):  (np.float64(-2.812), np.float64(3.277))
+
+========== Variant atr_0.25_10 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.573
+  Sharpe 95% CI (TEST):  (np.float64(-0.38), np.float64(1.312))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.448
+  Sharpe 95% CI (TEST):  (np.float64(-0.618), np.float64(1.234))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.428
+  Sharpe 95% CI (TEST):  (np.float64(-0.7), np.float64(1.237))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.549
+  Sharpe 95% CI (TEST):  (np.float64(-0.623), np.float64(1.406))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.651
+  Sharpe 95% CI (TEST):  (np.float64(-0.579), np.float64(1.515))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.334
+  Sharpe 95% CI (TEST):  (np.float64(-1.147), np.float64(1.347))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.188
+  Sharpe 95% CI (TEST):  (np.float64(-1.614), np.float64(1.297))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.228
+  Sharpe 95% CI (TEST):  (np.float64(-1.96), np.float64(1.401))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.752
+  Sharpe 95% CI (TEST):  (np.float64(-1.556), np.float64(1.968))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.346
+  Sharpe 95% CI (TEST):  (np.float64(-1.184), np.float64(2.708))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.995
+  Sharpe 95% CI (TEST):  (np.float64(-2.812), np.float64(3.277))
+
+========== Variant atr_0.25_11 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.603
+  Sharpe 95% CI (TEST):  (np.float64(-0.352), np.float64(1.331))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.477
+  Sharpe 95% CI (TEST):  (np.float64(-0.588), np.float64(1.244))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.478
+  Sharpe 95% CI (TEST):  (np.float64(-0.659), np.float64(1.265))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.596
+  Sharpe 95% CI (TEST):  (np.float64(-0.571), np.float64(1.428))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.699
+  Sharpe 95% CI (TEST):  (np.float64(-0.51), np.float64(1.546))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.394
+  Sharpe 95% CI (TEST):  (np.float64(-1.085), np.float64(1.378))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.224
+  Sharpe 95% CI (TEST):  (np.float64(-1.604), np.float64(1.31))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.283
+  Sharpe 95% CI (TEST):  (np.float64(-1.925), np.float64(1.43))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.8
+  Sharpe 95% CI (TEST):  (np.float64(-1.523), np.float64(1.985))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.389
+  Sharpe 95% CI (TEST):  (np.float64(-1.135), np.float64(2.72))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.002
+  Sharpe 95% CI (TEST):  (np.float64(-2.808), np.float64(3.312))
+
+========== Variant atr_0.25_12 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.627
+  Sharpe 95% CI (TEST):  (np.float64(-0.328), np.float64(1.337))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.499
+  Sharpe 95% CI (TEST):  (np.float64(-0.565), np.float64(1.249))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.502
+  Sharpe 95% CI (TEST):  (np.float64(-0.648), np.float64(1.268))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.618
+  Sharpe 95% CI (TEST):  (np.float64(-0.558), np.float64(1.435))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.719
+  Sharpe 95% CI (TEST):  (np.float64(-0.486), np.float64(1.545))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.414
+  Sharpe 95% CI (TEST):  (np.float64(-1.064), np.float64(1.378))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.254
+  Sharpe 95% CI (TEST):  (np.float64(-1.607), np.float64(1.321))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.318
+  Sharpe 95% CI (TEST):  (np.float64(-1.928), np.float64(1.434))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.819
+  Sharpe 95% CI (TEST):  (np.float64(-1.527), np.float64(1.976))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.391
+  Sharpe 95% CI (TEST):  (np.float64(-1.137), np.float64(2.694))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.002
+  Sharpe 95% CI (TEST):  (np.float64(-2.808), np.float64(3.312))
+
+========== Variant atr_0.25_13 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.653
+  Sharpe 95% CI (TEST):  (np.float64(-0.301), np.float64(1.346))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.525
+  Sharpe 95% CI (TEST):  (np.float64(-0.536), np.float64(1.254))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.53
+  Sharpe 95% CI (TEST):  (np.float64(-0.614), np.float64(1.278))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.645
+  Sharpe 95% CI (TEST):  (np.float64(-0.524), np.float64(1.446))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.746
+  Sharpe 95% CI (TEST):  (np.float64(-0.441), np.float64(1.545))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.444
+  Sharpe 95% CI (TEST):  (np.float64(-1.05), np.float64(1.392))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.297
+  Sharpe 95% CI (TEST):  (np.float64(-1.575), np.float64(1.329))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.375
+  Sharpe 95% CI (TEST):  (np.float64(-1.863), np.float64(1.46))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.852
+  Sharpe 95% CI (TEST):  (np.float64(-1.49), np.float64(1.975))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.412
+  Sharpe 95% CI (TEST):  (np.float64(-1.057), np.float64(2.693))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.081
+  Sharpe 95% CI (TEST):  (np.float64(-2.686), np.float64(3.38))
+
+========== Variant atr_0.25_14 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.664
+  Sharpe 95% CI (TEST):  (np.float64(-0.283), np.float64(1.341))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.533
+  Sharpe 95% CI (TEST):  (np.float64(-0.53), np.float64(1.247))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.546
+  Sharpe 95% CI (TEST):  (np.float64(-0.606), np.float64(1.274))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.658
+  Sharpe 95% CI (TEST):  (np.float64(-0.506), np.float64(1.441))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.764
+  Sharpe 95% CI (TEST):  (np.float64(-0.42), np.float64(1.539))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.465
+  Sharpe 95% CI (TEST):  (np.float64(-1.033), np.float64(1.392))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.315
+  Sharpe 95% CI (TEST):  (np.float64(-1.579), np.float64(1.329))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.394
+  Sharpe 95% CI (TEST):  (np.float64(-1.887), np.float64(1.459))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.854
+  Sharpe 95% CI (TEST):  (np.float64(-1.505), np.float64(1.955))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.409
+  Sharpe 95% CI (TEST):  (np.float64(-1.059), np.float64(2.674))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.081
+  Sharpe 95% CI (TEST):  (np.float64(-2.686), np.float64(3.38))
+
+========== Variant atr_0.25_15 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.681
+  Sharpe 95% CI (TEST):  (np.float64(-0.26), np.float64(1.343))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.55
+  Sharpe 95% CI (TEST):  (np.float64(-0.52), np.float64(1.245))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.564
+  Sharpe 95% CI (TEST):  (np.float64(-0.588), np.float64(1.275))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.674
+  Sharpe 95% CI (TEST):  (np.float64(-0.504), np.float64(1.436))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.778
+  Sharpe 95% CI (TEST):  (np.float64(-0.404), np.float64(1.536))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.482
+  Sharpe 95% CI (TEST):  (np.float64(-1.027), np.float64(1.389))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.341
+  Sharpe 95% CI (TEST):  (np.float64(-1.572), np.float64(1.339))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.425
+  Sharpe 95% CI (TEST):  (np.float64(-1.857), np.float64(1.462))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.872
+  Sharpe 95% CI (TEST):  (np.float64(-1.5), np.float64(1.96))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.415
+  Sharpe 95% CI (TEST):  (np.float64(-1.023), np.float64(2.665))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.031
+  Sharpe 95% CI (TEST):  (np.float64(-2.744), np.float64(3.355))
+
+========== Variant atr_0.25_20 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.678
+  Sharpe 95% CI (TEST):  (np.float64(-0.273), np.float64(1.311))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.569
+  Sharpe 95% CI (TEST):  (np.float64(-0.487), np.float64(1.229))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.585
+  Sharpe 95% CI (TEST):  (np.float64(-0.586), np.float64(1.258))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.69
+  Sharpe 95% CI (TEST):  (np.float64(-0.48), np.float64(1.41))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.788
+  Sharpe 95% CI (TEST):  (np.float64(-0.404), np.float64(1.514))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.53
+  Sharpe 95% CI (TEST):  (np.float64(-1.048), np.float64(1.352))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.422
+  Sharpe 95% CI (TEST):  (np.float64(-1.6), np.float64(1.329))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.506
+  Sharpe 95% CI (TEST):  (np.float64(-1.905), np.float64(1.439))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.893
+  Sharpe 95% CI (TEST):  (np.float64(-1.533), np.float64(1.897))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.369
+  Sharpe 95% CI (TEST):  (np.float64(-1.094), np.float64(2.548))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.046
+  Sharpe 95% CI (TEST):  (np.float64(-2.709), np.float64(3.373))
+
+========== Variant atr_0.5_0.25 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   -0.838
+  Sharpe 95% CI (TEST):  (np.float64(-1.626), np.float64(0.062))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   -0.709
+  Sharpe 95% CI (TEST):  (np.float64(-1.521), np.float64(0.262))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   -0.705
+  Sharpe 95% CI (TEST):  (np.float64(-1.584), np.float64(0.366))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   -0.516
+  Sharpe 95% CI (TEST):  (np.float64(-1.463), np.float64(0.62))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   -0.313
+  Sharpe 95% CI (TEST):  (np.float64(-1.307), np.float64(0.959))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   -0.412
+  Sharpe 95% CI (TEST):  (np.float64(-1.476), np.float64(0.963))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   -0.594
+  Sharpe 95% CI (TEST):  (np.float64(-1.715), np.float64(0.927))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.605
+  Sharpe 95% CI (TEST):  (np.float64(-1.844), np.float64(1.03))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   -0.802
+  Sharpe 95% CI (TEST):  (np.float64(-2.165), np.float64(1.156))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   -0.306
+  Sharpe 95% CI (TEST):  (np.float64(-2.087), np.float64(2.617))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   2.542
+  Sharpe 95% CI (TEST):  (np.float64(-0.5), np.float64(6.57))
+
+========== Variant atr_0.5_0.5 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   -0.419
+  Sharpe 95% CI (TEST):  (np.float64(-1.285), np.float64(0.532))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   -0.425
+  Sharpe 95% CI (TEST):  (np.float64(-1.323), np.float64(0.585))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   -0.356
+  Sharpe 95% CI (TEST):  (np.float64(-1.354), np.float64(0.702))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   -0.084
+  Sharpe 95% CI (TEST):  (np.float64(-1.11), np.float64(1.008))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.23
+  Sharpe 95% CI (TEST):  (np.float64(-0.893), np.float64(1.473))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   -0.021
+  Sharpe 95% CI (TEST):  (np.float64(-1.221), np.float64(1.349))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   -0.247
+  Sharpe 95% CI (TEST):  (np.float64(-1.536), np.float64(1.233))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.692
+  Sharpe 95% CI (TEST):  (np.float64(-2.054), np.float64(0.877))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   -0.719
+  Sharpe 95% CI (TEST):  (np.float64(-2.331), np.float64(1.145))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   -0.549
+  Sharpe 95% CI (TEST):  (np.float64(-2.547), np.float64(1.756))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.857
+  Sharpe 95% CI (TEST):  (np.float64(-2.127), np.float64(4.167))
+
+========== Variant atr_0.5_1 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.255
+  Sharpe 95% CI (TEST):  (np.float64(-0.636), np.float64(1.135))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.271
+  Sharpe 95% CI (TEST):  (np.float64(-0.654), np.float64(1.257))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.384
+  Sharpe 95% CI (TEST):  (np.float64(-0.66), np.float64(1.398))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.625
+  Sharpe 95% CI (TEST):  (np.float64(-0.432), np.float64(1.692))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.782
+  Sharpe 95% CI (TEST):  (np.float64(-0.362), np.float64(1.922))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.738
+  Sharpe 95% CI (TEST):  (np.float64(-0.555), np.float64(1.983))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.381
+  Sharpe 95% CI (TEST):  (np.float64(-1.005), np.float64(1.78))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.127
+  Sharpe 95% CI (TEST):  (np.float64(-1.7), np.float64(1.408))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.13
+  Sharpe 95% CI (TEST):  (np.float64(-1.682), np.float64(1.85))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.642
+  Sharpe 95% CI (TEST):  (np.float64(-1.657), np.float64(2.679))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   1.351
+  Sharpe 95% CI (TEST):  (np.float64(-1.944), np.float64(3.926))
+
+========== Variant atr_0.5_2 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.203
+  Sharpe 95% CI (TEST):  (np.float64(-0.705), np.float64(1.092))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.155
+  Sharpe 95% CI (TEST):  (np.float64(-0.839), np.float64(1.065))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.215
+  Sharpe 95% CI (TEST):  (np.float64(-0.843), np.float64(1.179))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.385
+  Sharpe 95% CI (TEST):  (np.float64(-0.725), np.float64(1.386))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.635
+  Sharpe 95% CI (TEST):  (np.float64(-0.542), np.float64(1.685))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.413
+  Sharpe 95% CI (TEST):  (np.float64(-0.955), np.float64(1.6))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   -0.065
+  Sharpe 95% CI (TEST):  (np.float64(-1.513), np.float64(1.233))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   -0.165
+  Sharpe 95% CI (TEST):  (np.float64(-1.828), np.float64(1.296))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.131
+  Sharpe 95% CI (TEST):  (np.float64(-1.746), np.float64(1.755))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.355
+  Sharpe 95% CI (TEST):  (np.float64(-2.013), np.float64(2.361))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.301
+  Sharpe 95% CI (TEST):  (np.float64(-3.085), np.float64(3.073))
+
+========== Variant atr_0.5_3 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.329
+  Sharpe 95% CI (TEST):  (np.float64(-0.594), np.float64(1.184))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.31
+  Sharpe 95% CI (TEST):  (np.float64(-0.665), np.float64(1.198))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.342
+  Sharpe 95% CI (TEST):  (np.float64(-0.738), np.float64(1.276))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.512
+  Sharpe 95% CI (TEST):  (np.float64(-0.621), np.float64(1.469))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.755
+  Sharpe 95% CI (TEST):  (np.float64(-0.402), np.float64(1.765))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.499
+  Sharpe 95% CI (TEST):  (np.float64(-0.87), np.float64(1.638))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.04
+  Sharpe 95% CI (TEST):  (np.float64(-1.479), np.float64(1.279))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.205
+  Sharpe 95% CI (TEST):  (np.float64(-1.582), np.float64(1.562))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.438
+  Sharpe 95% CI (TEST):  (np.float64(-1.536), np.float64(1.957))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.609
+  Sharpe 95% CI (TEST):  (np.float64(-1.83), np.float64(2.487))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.294
+  Sharpe 95% CI (TEST):  (np.float64(-3.085), np.float64(3.071))
+
+========== Variant atr_0.5_4 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.468
+  Sharpe 95% CI (TEST):  (np.float64(-0.454), np.float64(1.282))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.441
+  Sharpe 95% CI (TEST):  (np.float64(-0.529), np.float64(1.291))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.464
+  Sharpe 95% CI (TEST):  (np.float64(-0.627), np.float64(1.356))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.629
+  Sharpe 95% CI (TEST):  (np.float64(-0.477), np.float64(1.536))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.866
+  Sharpe 95% CI (TEST):  (np.float64(-0.277), np.float64(1.832))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.613
+  Sharpe 95% CI (TEST):  (np.float64(-0.751), np.float64(1.697))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.216
+  Sharpe 95% CI (TEST):  (np.float64(-1.314), np.float64(1.403))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.422
+  Sharpe 95% CI (TEST):  (np.float64(-1.366), np.float64(1.706))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.696
+  Sharpe 95% CI (TEST):  (np.float64(-1.301), np.float64(2.064))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.842
+  Sharpe 95% CI (TEST):  (np.float64(-1.657), np.float64(2.551))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.435
+  Sharpe 95% CI (TEST):  (np.float64(-3.084), np.float64(3.07))
+
+========== Variant atr_0.5_5 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.551
+  Sharpe 95% CI (TEST):  (np.float64(-0.398), np.float64(1.323))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.514
+  Sharpe 95% CI (TEST):  (np.float64(-0.474), np.float64(1.331))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.542
+  Sharpe 95% CI (TEST):  (np.float64(-0.53), np.float64(1.392))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.704
+  Sharpe 95% CI (TEST):  (np.float64(-0.417), np.float64(1.572))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.933
+  Sharpe 95% CI (TEST):  (np.float64(-0.19), np.float64(1.845))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.666
+  Sharpe 95% CI (TEST):  (np.float64(-0.701), np.float64(1.698))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.327
+  Sharpe 95% CI (TEST):  (np.float64(-1.238), np.float64(1.468))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.538
+  Sharpe 95% CI (TEST):  (np.float64(-1.286), np.float64(1.737))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.814
+  Sharpe 95% CI (TEST):  (np.float64(-1.222), np.float64(2.098))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   0.918
+  Sharpe 95% CI (TEST):  (np.float64(-1.66), np.float64(2.514))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.435
+  Sharpe 95% CI (TEST):  (np.float64(-3.084), np.float64(3.07))
+
+========== Variant atr_0.5_6 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.63
+  Sharpe 95% CI (TEST):  (np.float64(-0.318), np.float64(1.376))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.586
+  Sharpe 95% CI (TEST):  (np.float64(-0.398), np.float64(1.364))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.62
+  Sharpe 95% CI (TEST):  (np.float64(-0.444), np.float64(1.425))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.777
+  Sharpe 95% CI (TEST):  (np.float64(-0.324), np.float64(1.602))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   0.996
+  Sharpe 95% CI (TEST):  (np.float64(-0.108), np.float64(1.862))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.742
+  Sharpe 95% CI (TEST):  (np.float64(-0.597), np.float64(1.725))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.44
+  Sharpe 95% CI (TEST):  (np.float64(-1.157), np.float64(1.528))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.649
+  Sharpe 95% CI (TEST):  (np.float64(-1.181), np.float64(1.789))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   0.932
+  Sharpe 95% CI (TEST):  (np.float64(-1.075), np.float64(2.144))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.039
+  Sharpe 95% CI (TEST):  (np.float64(-1.54), np.float64(2.539))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.548
+  Sharpe 95% CI (TEST):  (np.float64(-2.969), np.float64(3.156))
+
+========== Variant atr_0.5_7 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.706
+  Sharpe 95% CI (TEST):  (np.float64(-0.224), np.float64(1.394))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.661
+  Sharpe 95% CI (TEST):  (np.float64(-0.302), np.float64(1.38))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.697
+  Sharpe 95% CI (TEST):  (np.float64(-0.364), np.float64(1.44))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.852
+  Sharpe 95% CI (TEST):  (np.float64(-0.211), np.float64(1.607))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.061
+  Sharpe 95% CI (TEST):  (np.float64(0.028), np.float64(1.847))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.838
+  Sharpe 95% CI (TEST):  (np.float64(-0.483), np.float64(1.72))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.577
+  Sharpe 95% CI (TEST):  (np.float64(-1.064), np.float64(1.561))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.777
+  Sharpe 95% CI (TEST):  (np.float64(-1.133), np.float64(1.796))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.052
+  Sharpe 95% CI (TEST):  (np.float64(-1.013), np.float64(2.133))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.106
+  Sharpe 95% CI (TEST):  (np.float64(-1.529), np.float64(2.461))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.475
+  Sharpe 95% CI (TEST):  (np.float64(-3.001), np.float64(3.15))
+
+========== Variant atr_0.5_8 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.711
+  Sharpe 95% CI (TEST):  (np.float64(-0.21), np.float64(1.381))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.675
+  Sharpe 95% CI (TEST):  (np.float64(-0.276), np.float64(1.371))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.712
+  Sharpe 95% CI (TEST):  (np.float64(-0.346), np.float64(1.429))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.868
+  Sharpe 95% CI (TEST):  (np.float64(-0.173), np.float64(1.6))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.067
+  Sharpe 95% CI (TEST):  (np.float64(0.045), np.float64(1.826))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.855
+  Sharpe 95% CI (TEST):  (np.float64(-0.453), np.float64(1.696))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.623
+  Sharpe 95% CI (TEST):  (np.float64(-1.056), np.float64(1.564))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.816
+  Sharpe 95% CI (TEST):  (np.float64(-1.15), np.float64(1.793))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.078
+  Sharpe 95% CI (TEST):  (np.float64(-1.051), np.float64(2.118))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.105
+  Sharpe 95% CI (TEST):  (np.float64(-1.573), np.float64(2.409))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.325
+  Sharpe 95% CI (TEST):  (np.float64(-3.051), np.float64(3.09))
+
+========== Variant atr_0.5_9 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.725
+  Sharpe 95% CI (TEST):  (np.float64(-0.193), np.float64(1.375))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.71
+  Sharpe 95% CI (TEST):  (np.float64(-0.227), np.float64(1.384))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.749
+  Sharpe 95% CI (TEST):  (np.float64(-0.288), np.float64(1.436))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.886
+  Sharpe 95% CI (TEST):  (np.float64(-0.136), np.float64(1.593))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.077
+  Sharpe 95% CI (TEST):  (np.float64(0.083), np.float64(1.805))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.879
+  Sharpe 95% CI (TEST):  (np.float64(-0.421), np.float64(1.685))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.672
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(1.571))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.86
+  Sharpe 95% CI (TEST):  (np.float64(-1.137), np.float64(1.79))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.108
+  Sharpe 95% CI (TEST):  (np.float64(-1.055), np.float64(2.1))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.117
+  Sharpe 95% CI (TEST):  (np.float64(-1.577), np.float64(2.368))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.325
+  Sharpe 95% CI (TEST):  (np.float64(-3.051), np.float64(3.09))
+
+========== Variant atr_0.5_10 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.726
+  Sharpe 95% CI (TEST):  (np.float64(-0.193), np.float64(1.369))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.712
+  Sharpe 95% CI (TEST):  (np.float64(-0.228), np.float64(1.376))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.75
+  Sharpe 95% CI (TEST):  (np.float64(-0.284), np.float64(1.428))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.885
+  Sharpe 95% CI (TEST):  (np.float64(-0.131), np.float64(1.583))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.073
+  Sharpe 95% CI (TEST):  (np.float64(0.08), np.float64(1.794))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.879
+  Sharpe 95% CI (TEST):  (np.float64(-0.421), np.float64(1.673))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.679
+  Sharpe 95% CI (TEST):  (np.float64(-1.046), np.float64(1.556))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.864
+  Sharpe 95% CI (TEST):  (np.float64(-1.128), np.float64(1.774))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.108
+  Sharpe 95% CI (TEST):  (np.float64(-1.044), np.float64(2.09))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.131
+  Sharpe 95% CI (TEST):  (np.float64(-1.575), np.float64(2.348))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.359
+  Sharpe 95% CI (TEST):  (np.float64(-3.022), np.float64(3.122))
+
+========== Variant atr_0.5_11 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.729
+  Sharpe 95% CI (TEST):  (np.float64(-0.181), np.float64(1.354))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.715
+  Sharpe 95% CI (TEST):  (np.float64(-0.227), np.float64(1.362))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.754
+  Sharpe 95% CI (TEST):  (np.float64(-0.272), np.float64(1.417))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.885
+  Sharpe 95% CI (TEST):  (np.float64(-0.126), np.float64(1.574))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.068
+  Sharpe 95% CI (TEST):  (np.float64(0.093), np.float64(1.774))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.88
+  Sharpe 95% CI (TEST):  (np.float64(-0.42), np.float64(1.654))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.693
+  Sharpe 95% CI (TEST):  (np.float64(-1.048), np.float64(1.551))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.873
+  Sharpe 95% CI (TEST):  (np.float64(-1.134), np.float64(1.758))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.111
+  Sharpe 95% CI (TEST):  (np.float64(-1.049), np.float64(2.077))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.136
+  Sharpe 95% CI (TEST):  (np.float64(-1.577), np.float64(2.319))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.359
+  Sharpe 95% CI (TEST):  (np.float64(-3.022), np.float64(3.122))
+
+========== Variant atr_0.5_12 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.73
+  Sharpe 95% CI (TEST):  (np.float64(-0.18), np.float64(1.346))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.717
+  Sharpe 95% CI (TEST):  (np.float64(-0.227), np.float64(1.348))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.755
+  Sharpe 95% CI (TEST):  (np.float64(-0.27), np.float64(1.404))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.883
+  Sharpe 95% CI (TEST):  (np.float64(-0.123), np.float64(1.56))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.06
+  Sharpe 95% CI (TEST):  (np.float64(0.095), np.float64(1.757))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.879
+  Sharpe 95% CI (TEST):  (np.float64(-0.42), np.float64(1.631))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.704
+  Sharpe 95% CI (TEST):  (np.float64(-1.051), np.float64(1.548))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.88
+  Sharpe 95% CI (TEST):  (np.float64(-1.14), np.float64(1.748))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.112
+  Sharpe 95% CI (TEST):  (np.float64(-1.054), np.float64(2.066))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.139
+  Sharpe 95% CI (TEST):  (np.float64(-1.579), np.float64(2.311))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.359
+  Sharpe 95% CI (TEST):  (np.float64(-3.022), np.float64(3.122))
+
+========== Variant atr_0.5_13 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.729
+  Sharpe 95% CI (TEST):  (np.float64(-0.179), np.float64(1.337))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.718
+  Sharpe 95% CI (TEST):  (np.float64(-0.222), np.float64(1.338))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.755
+  Sharpe 95% CI (TEST):  (np.float64(-0.269), np.float64(1.39))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.88
+  Sharpe 95% CI (TEST):  (np.float64(-0.117), np.float64(1.538))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.052
+  Sharpe 95% CI (TEST):  (np.float64(0.098), np.float64(1.738))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.876
+  Sharpe 95% CI (TEST):  (np.float64(-0.419), np.float64(1.611))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.712
+  Sharpe 95% CI (TEST):  (np.float64(-1.059), np.float64(1.537))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.883
+  Sharpe 95% CI (TEST):  (np.float64(-1.146), np.float64(1.736))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.11
+  Sharpe 95% CI (TEST):  (np.float64(-1.058), np.float64(2.05))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.14
+  Sharpe 95% CI (TEST):  (np.float64(-1.589), np.float64(2.295))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.351
+  Sharpe 95% CI (TEST):  (np.float64(-3.03), np.float64(3.116))
+
+========== Variant atr_0.5_14 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.728
+  Sharpe 95% CI (TEST):  (np.float64(-0.182), np.float64(1.361))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.714
+  Sharpe 95% CI (TEST):  (np.float64(-0.228), np.float64(1.366))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.752
+  Sharpe 95% CI (TEST):  (np.float64(-0.28), np.float64(1.422))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.885
+  Sharpe 95% CI (TEST):  (np.float64(-0.131), np.float64(1.579))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.07
+  Sharpe 95% CI (TEST):  (np.float64(0.09), np.float64(1.782))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.879
+  Sharpe 95% CI (TEST):  (np.float64(-0.421), np.float64(1.663))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.687
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(1.558))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.869
+  Sharpe 95% CI (TEST):  (np.float64(-1.131), np.float64(1.768))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.11
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(2.085))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.134
+  Sharpe 95% CI (TEST):  (np.float64(-1.576), np.float64(2.333))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.359
+  Sharpe 95% CI (TEST):  (np.float64(-3.022), np.float64(3.122))
+
+========== Variant atr_0.5_15 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.728
+  Sharpe 95% CI (TEST):  (np.float64(-0.182), np.float64(1.361))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.714
+  Sharpe 95% CI (TEST):  (np.float64(-0.228), np.float64(1.366))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.752
+  Sharpe 95% CI (TEST):  (np.float64(-0.28), np.float64(1.422))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.885
+  Sharpe 95% CI (TEST):  (np.float64(-0.131), np.float64(1.579))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.07
+  Sharpe 95% CI (TEST):  (np.float64(0.09), np.float64(1.782))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.879
+  Sharpe 95% CI (TEST):  (np.float64(-0.421), np.float64(1.663))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.687
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(1.558))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.869
+  Sharpe 95% CI (TEST):  (np.float64(-1.131), np.float64(1.768))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.11
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(2.085))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.134
+  Sharpe 95% CI (TEST):  (np.float64(-1.576), np.float64(2.333))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.359
+  Sharpe 95% CI (TEST):  (np.float64(-3.022), np.float64(3.122))
+
+========== Variant atr_0.5_20 ==========
+
+Rolling 0:
+  Sharpe Ratio (TEST):   0.728
+  Sharpe 95% CI (TEST):  (np.float64(-0.182), np.float64(1.361))
+
+Rolling 1:
+  Sharpe Ratio (TEST):   0.714
+  Sharpe 95% CI (TEST):  (np.float64(-0.228), np.float64(1.366))
+
+Rolling 2:
+  Sharpe Ratio (TEST):   0.752
+  Sharpe 95% CI (TEST):  (np.float64(-0.28), np.float64(1.422))
+
+Rolling 3:
+  Sharpe Ratio (TEST):   0.885
+  Sharpe 95% CI (TEST):  (np.float64(-0.131), np.float64(1.579))
+
+Rolling 4:
+  Sharpe Ratio (TEST):   1.07
+  Sharpe 95% CI (TEST):  (np.float64(0.09), np.float64(1.782))
+
+Rolling 5:
+  Sharpe Ratio (TEST):   0.879
+  Sharpe 95% CI (TEST):  (np.float64(-0.421), np.float64(1.663))
+
+Rolling 6:
+  Sharpe Ratio (TEST):   0.687
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(1.558))
+
+Rolling 7:
+  Sharpe Ratio (TEST):   0.869
+  Sharpe 95% CI (TEST):  (np.float64(-1.131), np.float64(1.768))
+
+Rolling 8:
+  Sharpe Ratio (TEST):   1.11
+  Sharpe 95% CI (TEST):  (np.float64(-1.047), np.float64(2.085))
+
+Rolling 9:
+  Sharpe Ratio (TEST):   1.134
+  Sharpe 95% CI (TEST):  (np.float64(-1.576), np.float64(2.333))
+
+Rolling 10:
+  Sharpe Ratio (TEST):   0.359
+  Sharpe 95% CI (TEST):  (np.float64(-3.022), np.float64(3.122))

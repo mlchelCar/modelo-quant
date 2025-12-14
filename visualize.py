@@ -569,6 +569,24 @@ def print_results_2(results, number):
             save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
             save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
 
+def print_results_3(results, number, variant_name="atr_0.5_3"):
+    for variant in results:
+        if variant.name != variant_name: continue
+        save_output(f"\n========== Variant {variant.name} ==========")
+
+        for i in range(number - 1):
+            test_metrics = variant.metrics[i][1]  # TEST metrics
+
+            dreturns = test_metrics.get("Daily Returns", None)
+            sharpe = test_metrics.get("Annualized Sharpe", None)
+            sharpe_ci = test_metrics.get("Sharpe 95% CI", None)
+
+            save_output(f"\nRolling {i}:")
+            save_output(f"  Daily Returns (TEST): {dreturns}")
+            save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
+            save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
+
+
 def print_best_variant_details(best_variant):
     save_output("\n========== Best Variant Detailed Metrics ==========\n")
     save_output(f"Variant Name: {best_variant.name}")
@@ -806,7 +824,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         # if all_candles[idx_a].symbol != all_candles[idx_b].symbol: # we check this in detect_entries
         #     continue
 
-        vp = calculate_volume_profile_from_trades(dataset, A, B, symbol=all_candles[idx_a].symbol, bins=160)
+        vp = calculate_volume_profile_from_trades_fast(dataset, A, B, symbol=all_candles[idx_a].symbol, bins=160)
         if vp is None:
             continue
 
@@ -829,7 +847,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         e["std"] = std_series[idx]
 
     # === Create Variants ===
-    if stop_type == "atr": s =     [0.25]
+    if stop_type == "atr": s = [0.25, 0.5]
 
     # [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
                                 
@@ -866,8 +884,8 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         rrr=7
     )
 
-    print_results_2(results, num)
-    # print_results_2(results, num)
+    print_results_3(results, num)
+    # print_results(results, num)
 
 def cronometer(func):
 
