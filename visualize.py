@@ -1008,7 +1008,7 @@ if __name__ == "__main__":
 Todo
 
 Resolver situacao dos simbolos                                       OK
-calcular Moving Average Crossings                                    OK
+Calcular Moving Average Crossings                                    OK
 Calcular Volume Profile                                              OK
 Plotar POC                                                           OK
 Add entry signals                                                    OK
