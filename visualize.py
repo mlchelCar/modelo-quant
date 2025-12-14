@@ -251,7 +251,7 @@ def decide_entry_direction(b_candle_close, poc, current_candle):
     
     return None
                     
-def detect_entries(candles, volume_profiles, same_symbols_A_B=False, same_symbols_A_entry=True):
+def detect_entries(candles, volume_profiles, same_symbols_A_B=False, same_symbols_A_entry=False):
     """
     Detects when candles touch a POC level from prior volume profiles.
 
@@ -585,7 +585,6 @@ def print_results_3(results, number, variant_name="atr_0.5_3"):
             save_output(f"  Daily Returns (TEST): {dreturns}")
             save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
             save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
-
 
 def print_best_variant_details(best_variant):
     save_output("\n========== Best Variant Detailed Metrics ==========\n")
