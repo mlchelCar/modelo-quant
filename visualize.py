@@ -302,8 +302,44 @@ def detect_entries(candles, volume_profiles, same_symbols_A_B=False, same_symbol
 
     return entries
 
-def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
-                        tick_size_in_price, tick_value, costs, capital, symbol):
+def compute_time_exit(entry_time, exit_mode):
+    if exit_mode == "EOD":
+        if entry_time.hour < 21:
+            return entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
+        else:
+            return (entry_time + pd.Timedelta(days=1)).replace(
+                hour=21, minute=0, second=0, microsecond=0)
+
+    elif exit_mode == "EOW":
+        # Friday = 4 (Monday=0)
+        weekday = entry_time.weekday()
+
+        # Days until Friday
+        days_to_friday = 4 - weekday
+
+        if days_to_friday == 0 and entry_time.hour >= 21:
+            days_to_friday = 7
+        elif weekday == 6:
+            days_to_friday += 5
+        elif weekday == 5:
+            raise ValueError("Entry on Saturday not supported")
+            
+        # Candidate Friday 21:00
+        friday_close = (entry_time + pd.Timedelta(days=days_to_friday)).replace(
+            hour=21, minute=0, second=0, microsecond=0)
+
+        return friday_close
+
+    elif exit_mode == "EOM":
+        raise NotImplementedError("EOM not implemented yet")
+
+    elif exit_mode == "NONE":
+        return None
+
+    else:
+        raise ValueError(f"Unknown exit_mode: {exit_mode}")
+
+def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_size_in_price, tick_value, costs, capital, symbol, exit_mode="EOD"):
     results = []
     contracts = []
     slippage_ticks = {
@@ -341,12 +377,10 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
 
         trade_closed = False
         result = 0
+        exit_time = None
 
         # determine closing time
-        if entry_time.hour < 21:
-            closing_time = entry_time.replace(hour=21, minute=0, second=0, microsecond=0)
-        else:
-            closing_time = (entry_time + pd.Timedelta(days=1)).replace(hour=21, minute=0)
+        closing_time = compute_time_exit(entry_time, exit_mode)
 
         # for candle in candles:
         for candle in candles[entry_idx + 1:]:
@@ -363,30 +397,35 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
             if direction == "long" and low <= stop_level:
                 result = -sl_ticks * tick_value * c - costs * c - slippage_cost
                 trade_closed = True
+                exit_time = candle_time
                 break
             if direction == "short" and high >= stop_level:
                 result = -sl_ticks * tick_value * c - costs * c - slippage_cost
                 trade_closed = True
+                exit_time = candle_time
                 break
 
             # target hit
             if direction == "long" and high >= target_level:
                 result = rr * sl_ticks * tick_value * c - costs * c
                 trade_closed = True
+                exit_time = candle_time
                 break
             if direction == "short" and low <= target_level:
                 result = rr * sl_ticks * tick_value * c - costs * c
                 trade_closed = True
+                exit_time = candle_time
                 break
 
             # time exit
-            if candle_time > closing_time:
+            if closing_time is not None and candle_time >= closing_time:
                 ticks_pnl = (close - entry_price) / tick_size_in_price
                 if direction == "short":
                     ticks_pnl = -ticks_pnl
 
                 result = ticks_pnl * tick_value * c - costs * c
                 trade_closed = True
+                exit_time = candle_time
                 break
 
             prev_close = close
@@ -399,8 +438,11 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,
                 ticks_pnl = -ticks_pnl
 
             result = ticks_pnl * tick_value * c - costs * c
+            exit_time = candles[-1].time
+            if exit_time.tzinfo is not None:
+                exit_time = exit_time.tz_convert(None)
 
-        results.append((entry_time, result/capital))
+        results.append((exit_time, result/capital))
         capital += result
 
     # Ensure trade_list is sorted chronologically
@@ -569,7 +611,7 @@ def print_results_2(results, number):
             save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
             save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
 
-def print_results_3(results, number, variant_name="atr_0.5_3"):
+def print_results_3(results, number, variant_name="atr_0.5_8"):
     for variant in results:
         if variant.name != variant_name: continue
         save_output(f"\n========== Variant {variant.name} ==========")
@@ -884,7 +926,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
     )
 
     print_results_3(results, num)
-    # print_results(results, num)
+    # print_results_2(results, num)
 
 def cronometer(func):
 
@@ -997,7 +1039,6 @@ def main():
 
     # === Save data ===
     write_output_to_file(tit)
-
 
 if __name__ == "__main__":
     main()
