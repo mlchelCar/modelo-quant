@@ -339,7 +339,7 @@ def compute_time_exit(entry_time, exit_mode):
     else:
         raise ValueError(f"Unknown exit_mode: {exit_mode}")
 
-def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_size_in_price, tick_value, costs, capital, symbol, exit_mode="EOD"):
+def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_size_in_price, tick_value, costs, capital, symbol, exit_mode):
     results = []
     contracts = []
     slippage_ticks = {
@@ -711,8 +711,8 @@ class Variant():
         self.num = num
         self.name = n
     
-    def compute(self, tick_size, tick_value, costs, capital):
-        self.results, dates, self.trade_list, self.contracts = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital, self.sm)
+    def compute(self, tick_size, tick_value, costs, capital, exit_type):
+        self.results, dates, self.trade_list, self.contracts = result_from_entries(self.entries, self. candles, self.stop_losses, self.rrratios, self.last_date, tick_size, tick_value, 2*costs, capital, self.sm, exit_type)
         self.metrics =  compute_data(self.results, dates, self.num, self.trade_list)
         print(f"Variant {self.name} created.")
 
@@ -823,7 +823,7 @@ def calculate_std(candles, period=20, mult=24):
 
     return std_list
 
-def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, costs, title=f"6E 60min ", sm="6E", starting_capital=100000):
+def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, costs, exit_type, title=f"6E 60min ", sm="6E", starting_capital=100000):
     print(f"Running strategy {title} {stop_type} stop loss on {len(all_candles)} candles.")
     print(f"Using {num} rolling windows.")
 
@@ -909,7 +909,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
             except Exception as e:
                 print(f"⚠️ Error creating Variant {name}: {e}")
 
-    for v in results: v.compute(tick_size, tick_value, costs, starting_capital)
+    for v in results: v.compute(tick_size, tick_value, costs, starting_capital, exit_type)
 
     visualize_candles(
         all_candles,
@@ -925,7 +925,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         rrr=7
     )
 
-    print_results_3(results, num)
+    print_results(results, num)
     # print_results_2(results, num)
 
 def cronometer(func):
@@ -950,6 +950,7 @@ def main():
 
 
     freq = "60min" #If we change this we must change the std calculation
+    exit_type = "EOD"
 
     if p == "data6E":
         symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
@@ -963,7 +964,7 @@ def main():
             "6EU5": ("2025-06-14", "2025-09-14"),
             "6EZ5": ("2025-09-14", "2025-12-14"),
         }
-        tit = f"6E {freq} Candlestick Chart"
+        tit = f"6E {freq} {exit_type} Candlestick Chart"
         sb = "6E"
         tick_size, tick_value, costs = 0.00005, 6.25, 3.1
 
@@ -987,7 +988,7 @@ def main():
             "M6EU5": ("2025-06-14", "2025-09-13"),
             "M6EZ5": ("2025-09-13", "2025-12-13"),
         }
-        tit = f"M6E {freq} Candlestick Chart"
+        tit = f"M6E {freq} {exit_type} Candlestick Chart"
         sb = "M6E"
         tick_size, tick_value, costs = 0.00005, 0.625, 0.84
 
@@ -1020,7 +1021,7 @@ def main():
         }
 
         tick_size, tick_value, costs = 0.01, 1, 1.1
-        tit = f"MCL {freq} Candlestick Chart"
+        tit = f"MCL {freq} {exit_type} Candlestick Chart"
         sb = "MCL"
 
     # === Build all candles ===
@@ -1035,7 +1036,7 @@ def main():
     rollings = 12
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs ,sm=sb, title=tit)
+    run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs, exit_type ,sm=sb, title=tit)
 
     # === Save data ===
     write_output_to_file(tit)
