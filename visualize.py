@@ -451,12 +451,9 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_
     # Create list of all weekdays between first_date and last_date (exclude Saturdays)
     first_date = trade_list[0][0].normalize()
     last_date = pd.to_datetime(str(last_date), format="mixed", dayfirst=False)
-    days = pd.date_range(start=first_date, end=last_date, freq="D")
-    
-    days = [d for d in days if d.weekday() != 5]  # weekday(): Monday=0, Saturday=5, Sunday=6
 
-    # Initialize dictionary to store daily returns
-    daily_returns = {day.date(): 0 for day in days}
+    trading_days = sorted({c.time.date() for c in candles})
+    daily_returns = {d: 0 for d in trading_days}
 
     # Group trades by day and sum results
     trade_dict = {}
