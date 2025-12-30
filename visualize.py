@@ -533,16 +533,17 @@ def visualize_candles(candles, stds, atr, t="Candlestick Chart", moving_averages
     fig.show()
 
 OUTPUT_TEXT = []
-def save_output(s):
+def save_output(t, s):
     print(s)
-    OUTPUT_TEXT.append(s + "\n")
+    t.append(s + "\n")
 
-def write_output_to_file(title):
+def write_output_to_file(title,text):
     filename = f"{title}.txt"
     with open(filename, "w", encoding="utf-8") as f:
-        f.writelines(OUTPUT_TEXT)
+        f.writelines(text)
 
 def print_results(results, number, best=5):
+    t = []
     # Counter for how many times each variant appears in the top 'best'
     appearance_counter = Counter()
     ranking_results = []   # store (rolling, rank, variant) for later plots
@@ -567,36 +568,37 @@ def print_results(results, number, best=5):
 
         # Print results (your original code)
         for j, v in enumerate(k):
-            save_output(f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
-            save_output(f"Contracts: {v[0].contracts}")
+            save_output(t,f"\n\n\nRolling {i} - Variant {j} - {v[0].name} - Fit Metrics")
+            save_output(t,f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][0]:
-                save_output(f"{m}: {v[0].metrics[v[1]][0][m]}")
+                save_output(t,f"{m}: {v[0].metrics[v[1]][0][m]}")
 
-            save_output(f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
-            save_output(f"Contracts: {v[0].contracts}")
+            save_output(t,f"\nRolling {i} - Variant {j} - {v[0].name} - Test Metrics")
+            save_output(t,f"Contracts: {v[0].contracts}")
             for m in v[0].metrics[v[1]][1]:
-                save_output(f"{m}: {v[0].metrics[v[1]][1][m]}")
+                save_output(t,f"{m}: {v[0].metrics[v[1]][1][m]}")
 
     # Print summary BEFORE printing each rolling result
-    save_output("\n========== Variant Appearance Count (FIT Rankings) ==========")
+    save_output(t,"\n========== Variant Appearance Count (FIT Rankings) ==========")
     for name, count in sorted(appearance_counter.items(), key=lambda x: -x[1]):
-        save_output(f"{name}: {count} times")
+        save_output(t,f"{name}: {count} times")
 
     best_variant_name, _ = appearance_counter.most_common(1)[0]
     best_variant = next(v for v in results if v.name == best_variant_name)
 
-    save_output("\n============================================")
-    save_output(f"BEST VARIANT:{best_variant.name}")
-    save_output(f"Total Fit (top {best}) Appearances: {appearance_counter[best_variant_name]}")
-    save_output("============================================")
+    save_output(t,"\n============================================")
+    save_output(t,f"BEST VARIANT:{best_variant.name}")
+    save_output(t,f"Total Fit (top {best}) Appearances: {appearance_counter[best_variant_name]}")
+    save_output(t,"============================================")
 
-    print_best_variant_details(best_variant)
+    return print_best_variant_details(t, best_variant)
 
-    make_graphs(best_variant)
+    # make_graphs(best_variant)
 
 def print_results_2(results, number):
+    t = []
     for variant in results:
-        save_output(f"\n========== Variant {variant.name} ==========")
+        save_output(t,f"\n========== Variant {variant.name} ==========")
 
         for i in range(number - 1):
             test_metrics = variant.metrics[i][1]  # TEST metrics
@@ -604,14 +606,16 @@ def print_results_2(results, number):
             sharpe = test_metrics.get("Annualized Sharpe", None)
             sharpe_ci = test_metrics.get("Sharpe 95% CI", None)
 
-            save_output(f"\nRolling {i}:")
-            save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
-            save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
+            save_output(t,f"\nRolling {i}:")
+            save_output(t,f"  Sharpe Ratio (TEST):   {sharpe}")
+            save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
+    return t
 
 def print_results_3(results, number, variant_name="atr_0.5_8"):
+    t = []
     for variant in results:
         if variant.name != variant_name: continue
-        save_output(f"\n========== Variant {variant.name} ==========")
+        save_output(t,f"\n========== Variant {variant.name} ==========")
 
         for i in range(number - 1):
             test_metrics = variant.metrics[i][1]  # TEST metrics
@@ -620,78 +624,80 @@ def print_results_3(results, number, variant_name="atr_0.5_8"):
             sharpe = test_metrics.get("Annualized Sharpe", None)
             sharpe_ci = test_metrics.get("Sharpe 95% CI", None)
 
-            save_output(f"\nRolling {i}:")
-            save_output(f"  Daily Returns (TEST): {dreturns}")
-            save_output(f"  Sharpe Ratio (TEST):   {sharpe}")
-            save_output(f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
+            save_output(t,f"\nRolling {i}:")
+            save_output(t,f"  Daily Returns (TEST): {dreturns}")
+            save_output(t,f"  Sharpe Ratio (TEST):   {sharpe}")
+            save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
+    return t
 
-def print_best_variant_details(best_variant):
-    save_output("\n========== Best Variant Detailed Metrics ==========\n")
-    save_output(f"Variant Name: {best_variant.name}")
-    save_output("---------------------------------------------------")
+def print_best_variant_details(t, best_variant):
+    save_output(t,"\n========== Best Variant Detailed Metrics ==========\n")
+    save_output(t,f"Variant Name: {best_variant.name}")
+    save_output(t,"---------------------------------------------------")
 
     for i, rolling in enumerate(best_variant.metrics):
         fit = rolling[0]   # dictionary of FIT metrics
         test = rolling[1]  # dictionary of TEST metrics
 
-        save_output(f"\n================ Rolling {i} ================")
+        save_output(t,f"\n================ Rolling {i} ================")
 
         # =============================
         # FIT METRICS
         # =============================
-        # save_output("\n--- FIT Metrics ---")
+        # save_output(t,"\n--- FIT Metrics ---")
         # if fit != {}:
-            # save_output(f"Start Date: {test.get('Start Date', 'N/A')}")
-            # save_output(f"End Date:   {test.get('End Date','N/A')}")
+            # save_output(t,f"Start Date: {test.get('Start Date', 'N/A')}")
+            # save_output(t,f"End Date:   {test.get('End Date','N/A')}")
 
-            # save_output(f"Sharpe Ratio:        {test['Sharpe Ratio']}")
-            # save_output(f"Annualized Sharpe:   {test['Annualized Sharpe']}")
-            # save_output(f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
-            # save_output(f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
-            # save_output(f"CAGR:                {test.get('CAGR', 'N/A')}")
+            # save_output(t,f"Sharpe Ratio:        {test['Sharpe Ratio']}")
+            # save_output(t,f"Annualized Sharpe:   {test['Annualized Sharpe']}")
+            # save_output(t,f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
+            # save_output(t,f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
+            # save_output(t,f"CAGR:                {test.get('CAGR', 'N/A')}")
 
-            # save_output(f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
-            # save_output(f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
-            # save_output(f"Max Drawdown:        {test['Max Drawdown']}")
+            # save_output(t,f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
+            # save_output(t,f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
+            # save_output(t,f"Max Drawdown:        {test['Max Drawdown']}")
 
-            # save_output(f"Profit Factor:       {test['Profit Factor']}")
-            # save_output(f"Expectancy:          {test['Expectancy']}")
-            # save_output(f"Average Win:         {test['Average Win']:.2f}")
-            # save_output(f"Average Loss:        {test['Average Loss']:.2f}")
+            # save_output(t,f"Profit Factor:       {test['Profit Factor']}")
+            # save_output(t,f"Expectancy:          {test['Expectancy']}")
+            # save_output(t,f"Average Win:         {test['Average Win']:.2f}")
+            # save_output(t,f"Average Loss:        {test['Average Loss']:.2f}")
 
-            # save_output(f"Total Trades:        {test['Total Trades']}")
-            # save_output(f"Total Days:          {test['Total Days']}")
+            # save_output(t,f"Total Trades:        {test['Total Trades']}")
+            # save_output(t,f"Total Days:          {test['Total Days']}")
         # else:
-        #     save_output("No FIT data (this is the last rolling window).")
+        #     save_output(t,"No FIT data (this is the last rolling window).")
 
         # =============================
         # TEST METRICS
         # =============================
-        save_output("\n--- TEST Metrics ---")
+        save_output(t,"\n--- TEST Metrics ---")
         if test != {}:
-            save_output(f"Start Date: {test.get('Start Date', 'N/A')}")
-            save_output(f"End Date:   {test.get('End Date','N/A')}")
+            save_output(t,f"Start Date: {test.get('Start Date', 'N/A')}")
+            save_output(t,f"End Date:   {test.get('End Date','N/A')}")
 
-            save_output(f"Sharpe Ratio:        {test['Sharpe Ratio']}")
-            save_output(f"Annualized Sharpe:   {test['Annualized Sharpe']}")
-            save_output(f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
-            save_output(f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
-            save_output(f"CAGR:                {test.get('CAGR', 'N/A')}")
+            save_output(t,f"Sharpe Ratio:        {test['Sharpe Ratio']}")
+            save_output(t,f"Annualized Sharpe:   {test['Annualized Sharpe']}")
+            save_output(t,f"Sortino Ratio:       {test.get('Sortino Ratio', 'N/A')}")
+            save_output(t,f"Calmar Ratio:        {test.get('Calmar Ratio', 'N/A')}")
+            save_output(t,f"CAGR:                {test.get('CAGR', 'N/A')}")
 
-            save_output(f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
-            save_output(f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
-            save_output(f"Max Drawdown:        {test['Max Drawdown']}")
+            save_output(t,f"Sharpe 95% CI:       {test['Sharpe 95% CI']}")
+            save_output(t,f"Daily Win Rate (%):  {test['Daily Win Rate (%)']}")
+            save_output(t,f"Max Drawdown:        {test['Max Drawdown']}")
 
-            save_output(f"Profit Factor:       {test['Profit Factor']}")
-            save_output(f"Expectancy:          {test['Expectancy']}")
-            save_output(f"Average Win:         {test['Average Win']:.2f}")
-            save_output(f"Average Loss:        {test['Average Loss']:.2f}")
+            save_output(t,f"Profit Factor:       {test['Profit Factor']}")
+            save_output(t,f"Expectancy:          {test['Expectancy']}")
+            save_output(t,f"Average Win:         {test['Average Win']:.2f}")
+            save_output(t,f"Average Loss:        {test['Average Loss']:.2f}")
 
-            # save_output(f"Total Trades:        {test['Total Trades']}")
-            # save_output(f"Total Days:          {test['Total Days']}")
+            # save_output(t,f"Total Trades:        {test['Total Trades']}")
+            # save_output(t,f"Total Days:          {test['Total Days']}")
 
         else:
-            save_output("No TEST data in this rolling window.")
+            save_output(t,"No TEST data in this rolling window.")
+    return t
 
 def make_graphs(variant):
     pass
@@ -922,8 +928,9 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         rrr=7
     )
 
-    print_results(results, num)
-    # print_results_2(results, num)
+    t1 = print_results(results, num)
+    t2 = print_results_2(results, num)
+    return (t1, t2)
 
 def cronometer(func):
 
@@ -947,7 +954,7 @@ def main():
 
 
     freq = "60min" #If we change this we must change the std calculation
-    exit_type = "EOD"
+    exit_type = "EOW"
 
     if p == "data6E":
         symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
@@ -1033,10 +1040,11 @@ def main():
     rollings = 12
 
     # === Split data (fit/test) ===
-    run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs, exit_type ,sm=sb, title=tit)
+    t = run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs, exit_type ,sm=sb, title=tit)
 
     # === Save data ===
-    write_output_to_file(tit)
+    for num, text in enumerate(t):
+        write_output_to_file(tit+f"_{num}", text)
 
 if __name__ == "__main__":
     main()
