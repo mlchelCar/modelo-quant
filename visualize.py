@@ -443,7 +443,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_
                 exit_time = exit_time.tz_convert(None)
 
         results.append((exit_time, result/capital))
-        capital += result
+        # capital += result
 
     # Ensure trade_list is sorted chronologically
     trade_list = sorted(results, key=lambda x: x[0])
@@ -634,7 +634,7 @@ def print_best_variant_details(best_variant):
         fit = rolling[0]   # dictionary of FIT metrics
         test = rolling[1]  # dictionary of TEST metrics
 
-        save_output(f"\n================ Rolling {i+1} ================")
+        save_output(f"\n================ Rolling {i} ================")
 
         # =============================
         # FIT METRICS
