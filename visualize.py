@@ -532,7 +532,6 @@ def visualize_candles(candles, stds, atr, t="Candlestick Chart", moving_averages
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     fig.show()
 
-OUTPUT_TEXT = []
 def save_output(t, s):
     print(s)
     t.append(s + "\n")
@@ -689,8 +688,8 @@ def print_best_variant_details(t, best_variant):
 
             save_output(t,f"Profit Factor:       {test['Profit Factor']}")
             save_output(t,f"Expectancy:          {test['Expectancy']}")
-            save_output(t,f"Average Win:         {test['Average Win']:.2f}")
-            save_output(t,f"Average Loss:        {test['Average Loss']:.2f}")
+            save_output(t,f"Average Win:         {test['Average Win']}")
+            save_output(t,f"Average Loss:        {test['Average Loss']}")
 
             # save_output(t,f"Total Trades:        {test['Total Trades']}")
             # save_output(t,f"Total Days:          {test['Total Days']}")
@@ -1089,6 +1088,8 @@ Week profit visualization
 Generate CI per rolling graph
 Show Rolling Division on visualization
 Add 1 year, 3 months, 1 month returns
+see win and loss distribution
+filter win and loss distribution based on metrics
 Fit and Test separated (out of sample)                               OK
 Fit and Test rolling out of sample                                   OK
 Add final date                                                       OK
@@ -1102,7 +1103,7 @@ Stop size based on ATR                                               OK
 Fix instrument specifics(tick size, tick value, costs)               OK
 Fix volality in % not being handled                                  OK
 Handle 0 contracts situations                                        OK
-Test keeping position open
+Test keeping position open                                           OK
 Fix Contract Switch to match tradingview
 Trades bleeding across Contracts Add Switch                          OK
 Volatility scaling: you’re treating 1-hour STD as daily STD          OK
@@ -1113,6 +1114,6 @@ Avg Win / Avg Loss are wrong                                         OK
 Fix Compute Data                                                     OK
 Tralling Stop instead of take profit
 Position Sizing with Forecast Value
-Plot metrics x profit factor
 Combine M6E, MCL, etc daily returns to see the metrics togheter
+
 '''

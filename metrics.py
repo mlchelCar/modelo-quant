@@ -329,8 +329,8 @@ def compute_data(l, dates, n, trade_list):
                 ),
                 "Expectancy": round(expectancy, 6),
 
-                "Average Win": round(avg_w, 6),
-                "Average Loss": round(avg_l, 6),
+                "Average Win": round(avg_w*100, 6),
+                "Average Loss": round(avg_l*100, 6),
 
                 "Total Trades": len(trades_in_segment),
                 "Total Days": len(seg_returns),
