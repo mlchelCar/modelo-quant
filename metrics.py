@@ -244,7 +244,8 @@ def compute_data(l, dates, n, trade_list):
     # 4) Normalize trade timestamps
     # ---------------------------------------------------------
     normalized_trades = []
-    for exit_time, pnl in trade_list:
+    for i in trade_list:
+        exit_time, pnl = i[0], i[1]
         try:
             ts = pd.to_datetime(exit_time)
             normalized_trades.append((ts, float(pnl)))

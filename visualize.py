@@ -442,7 +442,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_
             if exit_time.tzinfo is not None:
                 exit_time = exit_time.tz_convert(None)
 
-        results.append((exit_time, result/capital))
+        results.append((exit_time, result/capital, direction, sl_ticks, rr, entry['std']))
         # capital += result
 
     # Ensure trade_list is sorted chronologically
@@ -629,12 +629,12 @@ def print_results_3(results, number, variant_name="atr_0.5_8"):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
-def print_results_4(results, number, variant_name="atr_0.5_8"):
+def print_results_4(results, variant_name="atr_0.25_3"):
     t = []
     for variant in results:
         if variant.name != variant_name: continue
         save_output(t,f"\n========== Variant {variant.name} Trade Results ==========")
-        save_output(t,f"{variant.results}")
+        save_output(t,f"{variant.trade_list}")
     return t
 
 def print_best_variant_details(t, best_variant):
@@ -935,9 +935,11 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         rrr=7
     )
 
+    t4 = print_results_4(results)
+    return (t4)
     t1 = print_results(results, num)
     t2 = print_results_2(results, num)
-    return (t1, t2)
+    return (t1, t2, t4)
 
 def cronometer(func):
 
