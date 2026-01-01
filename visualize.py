@@ -629,6 +629,14 @@ def print_results_3(results, number, variant_name="atr_0.5_8"):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
+def print_results_4(results, number, variant_name="atr_0.5_8"):
+    t = []
+    for variant in results:
+        if variant.name != variant_name: continue
+        save_output(t,f"\n========== Variant {variant.name} Trade Results ==========")
+        save_output(t,f"{variant.results}")
+    return t
+
 def print_best_variant_details(t, best_variant):
     save_output(t,"\n========== Best Variant Detailed Metrics ==========\n")
     save_output(t,f"Variant Name: {best_variant.name}")
@@ -1083,6 +1091,7 @@ Optimizar memoria
 Otimizacao: detect entries lopando em candles apartir do B
 Optimize volume profile function                                     OK
 Save output                                                          OK
+Implement week or holiday exit
 Generate p&l graph function                                         
 Week profit visualization
 Generate CI per rolling graph
