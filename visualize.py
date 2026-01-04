@@ -610,7 +610,7 @@ def print_results_2(results, number):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
-def print_results_3(results, number, variant_name="atr_0.5_8"):
+def print_results_3(results, number, variant_name="atr_0.25_6"):
     t = []
     for variant in results:
         if variant.name != variant_name: continue
@@ -629,7 +629,7 @@ def print_results_3(results, number, variant_name="atr_0.5_8"):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
-def print_results_4(results, variant_name="atr_0.25_3"):
+def print_results_4(results, variant_name="atr_0.25_6"):
     t = []
     for variant in results:
         if variant.name != variant_name: continue
@@ -935,11 +935,12 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
         rrr=7
     )
 
-    t1 = print_results(results, num)
-    t2 = print_results_2(results, num)
-    # t4 = print_results_4(results)
+    # t1 = print_results(results, num)
+    # t2 = print_results_2(results, num)
+    t3 = print_results_2(results, num)
+    t4 = print_results_4(results)
 
-    return (t1, t2)
+    return (t3, t4)
 
 def cronometer(func):
 
@@ -963,7 +964,7 @@ def main():
 
 
     freq = "60min" #If we change this we must change the std calculation
-    exit_type = "EOW"
+    exit_type = "EOD"
 
     if p == "data6E":
         symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
