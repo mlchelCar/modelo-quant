@@ -442,7 +442,7 @@ def result_from_entries(entries, candles, stop_losses, rrratios, last_date,tick_
             if exit_time.tzinfo is not None:
                 exit_time = exit_time.tz_convert(None)
 
-        results.append((exit_time, result/capital, direction, sl_ticks, rr, entry['std']))
+        results.append((exit_time, result/capital, entry_time, direction, entry['std']))
         # capital += result
 
     # Ensure trade_list is sorted chronologically
@@ -610,7 +610,7 @@ def print_results_2(results, number):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
-def print_results_3(results, number, variant_name="atr_0.25_6"):
+def print_results_3(results, number, variant_name="atr_0.25_3"):
     t = []
     for variant in results:
         if variant.name != variant_name: continue
@@ -629,7 +629,7 @@ def print_results_3(results, number, variant_name="atr_0.25_6"):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
-def print_results_4(results, variant_name="atr_0.25_6"):
+def print_results_4(results, variant_name="atr_0.25_3"):
     t = []
     for variant in results:
         if variant.name != variant_name: continue
@@ -964,7 +964,7 @@ def main():
 
 
     freq = "60min" #If we change this we must change the std calculation
-    exit_type = "EOD"
+    exit_type = "EOW"
 
     if p == "data6E":
         symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
