@@ -629,7 +629,7 @@ def print_results_3(results, number, variant_name="atr_0.25_3"):
             save_output(t,f"  Sharpe 95% CI (TEST):  {sharpe_ci}")
     return t
 
-def print_results_4(results, variant_name="atr_0.25_3"):
+def print_results_4(results, variant_name="atr_0.25_6"):
     t = []
     for variant in results:
         if variant.name != variant_name: continue
@@ -847,7 +847,7 @@ def run_strategy(dataset, all_candles, num, stop_type, tick_size, tick_value, co
 
 
     dt = str(all_candles[-1].time)[:10]
-
+    
 
     # === Calculate Moving Averages ===
     ma_dict, cross_up, cross_down = calculate_moving_averages_and_crossovers(all_candles, short_ma, long_ma)
@@ -962,9 +962,10 @@ def main():
     p = sys.argv[3]
     dataset, days, first_date, last_date = load_raw_data(initial_date, last_date, path=p, max_files=None)
 
+    
 
     freq = "60min" #If we change this we must change the std calculation
-    exit_type = "EOW"
+    exit_type = "EOD"
 
     if p == "data6E":
         symbols = ["6EH4", "6EM4", "6EU4", "6EZ4", "6EH5", "6EM5", "6EU5", "6EZ5"]
@@ -1007,32 +1008,80 @@ def main():
         tick_size, tick_value, costs = 0.00005, 0.625, 0.84
 
     if p == "dataMCL":
-        symbols = ["MCLH2", "MCLM2", "MCLU2", "MCLZ2",
-                "MCLH3", "MCLM3", "MCLU3", "MCLZ3",
-                "MCLH4", "MCLM4", "MCLU4", "MCLZ4",
-                "MCLH5", "MCLM5", "MCLU5", "MCLZ5"]
+        symbols = [
+                    "MCLF2", "MCLG2", "MCLH2", "MCLJ2", "MCLK2", "MCLM2",
+                    "MCLN2", "MCLQ2", "MCLU2", "MCLV2", "MCLX2", "MCLZ2",
+
+                    "MCLF3", "MCLG3", "MCLH3", "MCLJ3", "MCLK3", "MCLM3",
+                    "MCLN3", "MCLQ3", "MCLU3", "MCLV3", "MCLX3", "MCLZ3",
+
+                    "MCLF4", "MCLG4", "MCLH4", "MCLJ4", "MCLK4", "MCLM4",
+                    "MCLN4", "MCLQ4", "MCLU4", "MCLV4", "MCLX4", "MCLZ4",
+
+                    "MCLF5", "MCLG5", "MCLH5", "MCLJ5", "MCLK5", "MCLM5",
+                    "MCLN5", "MCLQ5", "MCLU5", "MCLV5", "MCLX5", "MCLZ5",
+
+                    "MCLF6", "MCLG6", "MCLH6"]
+
 
         roll_schedule = {
-            "MCLH2": ("2021-12-11", "2022-03-12"),
-            "MCLM2": ("2022-03-12", "2022-06-11"),
-            "MCLU2": ("2022-06-11", "2022-09-17"),
-            "MCLZ2": ("2022-09-17", "2022-12-17"),
+                    "MCLF2": ("2022-01-01", "2022-01-29"),
+                    "MCLG2": ("2022-01-29", "2022-02-26"),
+                    "MCLH2": ("2022-02-26", "2022-03-26"),
+                    "MCLJ2": ("2022-03-26", "2022-04-30"),
+                    "MCLK2": ("2022-04-30", "2022-05-28"),
+                    "MCLM2": ("2022-05-28", "2022-06-25"),
+                    "MCLN2": ("2022-06-25", "2022-07-30"),
+                    "MCLQ2": ("2022-07-30", "2022-08-27"),
+                    "MCLU2": ("2022-08-27", "2022-09-24"),
+                    "MCLV2": ("2022-09-24", "2022-10-29"),
+                    "MCLX2": ("2022-10-29", "2022-11-26"),
+                    "MCLZ2": ("2022-11-26", "2022-12-31"),
 
-            "MCLH3": ("2022-12-17", "2023-03-11"),
-            "MCLM3": ("2023-03-11", "2023-06-17"),
-            "MCLU3": ("2023-06-17", "2023-09-16"),
-            "MCLZ3": ("2023-09-16", "2023-12-16"),
+                    "MCLF3": ("2022-12-31", "2023-01-28"),
+                    "MCLG3": ("2023-01-28", "2023-02-25"),
+                    "MCLH3": ("2023-02-25", "2023-03-25"),
+                    "MCLJ3": ("2023-03-25", "2023-04-29"),
+                    "MCLK3": ("2023-04-29", "2023-05-27"),
+                    "MCLM3": ("2023-05-27", "2023-06-24"),
+                    "MCLN3": ("2023-06-24", "2023-07-29"),
+                    "MCLQ3": ("2023-07-29", "2023-08-26"),
+                    "MCLU3": ("2023-08-26", "2023-09-30"),
+                    "MCLV3": ("2023-09-30", "2023-10-28"),
+                    "MCLX3": ("2023-10-28", "2023-11-25"),
+                    "MCLZ3": ("2023-11-25", "2023-12-30"),
 
-            "MCLH4": ("2023-12-16", "2024-03-16"),
-            "MCLM4": ("2024-03-16", "2024-06-15"),
-            "MCLU4": ("2024-06-15", "2024-09-14"),
-            "MCLZ4": ("2024-09-14", "2024-12-14"),
+                    "MCLF4": ("2023-12-30", "2024-01-27"),
+                    "MCLG4": ("2024-01-27", "2024-02-24"),
+                    "MCLH4": ("2024-02-24", "2024-03-30"),
+                    "MCLJ4": ("2024-03-30", "2024-04-27"),
+                    "MCLK4": ("2024-04-27", "2024-05-25"),
+                    "MCLM4": ("2024-05-25", "2024-06-29"),
+                    "MCLN4": ("2024-06-29", "2024-07-27"),
+                    "MCLQ4": ("2024-07-27", "2024-08-31"),
+                    "MCLU4": ("2024-08-31", "2024-09-28"),
+                    "MCLV4": ("2024-09-28", "2024-10-26"),
+                    "MCLX4": ("2024-10-26", "2024-11-30"),
+                    "MCLZ4": ("2024-11-30", "2024-12-28"),
 
-            "MCLH5": ("2024-12-14", "2025-03-15"),
-            "MCLM5": ("2025-03-15", "2025-06-14"),
-            "MCLU5": ("2025-06-14", "2025-09-13"),
-            "MCLZ5": ("2025-09-13", "2025-12-13"),
-        }
+                    "MCLF5": ("2024-12-19", "2025-01-15"),
+                    "MCLG5": ("2025-01-16", "2025-02-19"),
+                    "MCLH5": ("2025-02-20", "2025-03-19"),
+                    "MCLJ5": ("2025-03-20", "2025-04-16"),
+                    "MCLK5": ("2025-04-17", "2025-05-14"),
+                    "MCLM5": ("2025-05-15", "2025-06-18"),
+                    "MCLN5": ("2025-06-19", "2025-07-16"),
+                    "MCLQ5": ("2025-07-17", "2025-08-20"),
+                    "MCLU5": ("2025-08-21", "2025-09-17"),
+                    "MCLV5": ("2025-08-21", "2025-09-17"),  # October delivery, rolled out early
+                    "MCLX5": ("2025-09-18", "2025-10-17"),  # ✅ matches your screenshot
+                    "MCLZ5": ("2025-10-18", "2025-11-20"),
+
+                    "MCLF6": ("2025-12-27", "2026-01-31"),
+                    "MCLG6": ("2026-01-31", "2026-02-28"),
+                    "MCLH6": ("2026-02-28", "2026-03-28"),
+                }
+
 
         tick_size, tick_value, costs = 0.01, 1, 1.1
         tit = f"MCL {freq} {exit_type}"
@@ -1040,14 +1089,15 @@ def main():
 
     # === Build all candles ===
     all_candles = []
+
     for s in symbols:
         for t in make_candles(dataset, freq, symbol=s, roll_schedule=roll_schedule):
             all_candles.append(t)
-
+    
     # stop_type = "fixed"
     stop_type = "atr"
 
-    rollings = 12
+    rollings = 2
 
     # === Split data (fit/test) ===
     t = run_strategy(dataset, all_candles, rollings, stop_type, tick_size, tick_value, costs, exit_type ,sm=sb, title=tit+f" Candlestick Chart")
@@ -1087,10 +1137,10 @@ Add Metric Avg Loss                                                  OK
 Add Metric Number of days                                            OK
 Fix metrics Total Trades                                             OK
 Control Trade Duration                                               OK
-Optimize load_data function
-Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo
-Optimizar memoria
-Otimizacao: detect entries lopando em candles apartir do B
+Optimize load_data function                                          -
+Optimizacao: fazer compute_data e return from trades para todas variantes ao mesmo tempo    -
+Optimizar memoria                                                    OK
+Otimizacao: detect entries lopando em candles apartir do B  
 Optimize volume profile function                                     OK
 Save output                                                          OK
 Implement week or holiday exit
