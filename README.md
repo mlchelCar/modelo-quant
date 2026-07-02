@@ -1,3 +1,7 @@
+Modelo de trading que usa medias moveis, determinar o calculo de volume profile e operar suporte/resistencia no POC.
+(Overfitado) "backtest and researching is like drinking and driving"
+
+
 ![Alt text](img/metrics_per_variant_1y.jpeg)
 ![Alt text](img/unnamed.png)
 ![Alt text](img/vol_targeting_sim.png)
