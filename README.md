@@ -1,4 +1,4 @@
-Modelo de trading que usa medias moveis, determinar o calculo de volume profile e operar suporte/resistencia no POC.
+Modelo de trading que usa medias moveis, para determinar o calculo de volume profile e operar suporte/resistencia no POC.
 (Overfitado) "backtest and researching is like drinking and driving"
 
 
